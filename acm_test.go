@@ -1,4 +1,4 @@
-package acmgo
+package gacm
 
 import (
 	"testing"
