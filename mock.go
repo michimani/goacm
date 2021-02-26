@@ -3,8 +3,6 @@ package acmgo
 import (
 	"context"
 	"errors"
-	"fmt"
-	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
@@ -15,8 +13,6 @@ import (
 type MockParams struct {
 	Arn             string
 	DomainName      string
-	ArnBase         string
-	DomainNameBase  string
 	Status          string
 	CertificateType string
 	FailureReason   string
@@ -46,45 +42,54 @@ func (m MockACMAPI) ListCertificates(ctx context.Context, params *acm.ListCertif
 }
 
 // GenerateMockACMAPI return MockACMAPI.
-func GenerateMockACMAPI(p MockParams) MockACMAPI {
+func GenerateMockACMAPI(mockParams []MockParams) MockACMAPI {
 	return MockACMAPI{
-		DescribeCertificateAPI: GenerateMockACMDescribeCertificateAPI(p.Arn, p.DomainName, p.Status, p.CertificateType, p.FailureReason),
-		ListCertificatesAPI:    GenerateMockACMListCertificatesAPI(p.ArnBase, p.DomainNameBase, p.Count),
+		DescribeCertificateAPI: GenerateMockACMDescribeCertificateAPI(mockParams),
+		ListCertificatesAPI:    GenerateMockACMListCertificatesAPI(mockParams),
 	}
 }
 
 // GenerateMockACMDescribeCertificateAPI returns MockACMDescribeCertificateAPI.
-func GenerateMockACMDescribeCertificateAPI(arn, domainName, status, cType, failurReason string) MockACMDescribeCertificateAPI {
+func GenerateMockACMDescribeCertificateAPI(mockParams []MockParams) MockACMDescribeCertificateAPI {
 	return MockACMDescribeCertificateAPI(func(ctx context.Context, params *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
 		if params.CertificateArn == nil {
 			return nil, errors.New("expect Certificate ARN to not be nil")
 		}
 
-		if aws.ToString(params.CertificateArn) != arn {
+		var availableCertificates map[string]*acm.DescribeCertificateOutput = map[string]*acm.DescribeCertificateOutput{}
+		for _, mp := range mockParams {
+			if mp.Arn == "" {
+				continue
+			}
+			availableCertificates[mp.Arn] = &acm.DescribeCertificateOutput{
+				Certificate: &types.CertificateDetail{
+					CertificateArn: aws.String(mp.Arn),
+					DomainName:     aws.String(mp.DomainName),
+					Status:         types.CertificateStatus(mp.Status),
+					Type:           types.CertificateType(mp.CertificateType),
+					FailureReason:  types.FailureReason(mp.FailureReason),
+				},
+			}
+		}
+
+		dco := availableCertificates[*params.CertificateArn]
+		if dco == nil {
 			return nil, errors.New("not found")
 		}
 
-		return &acm.DescribeCertificateOutput{
-			Certificate: &types.CertificateDetail{
-				CertificateArn: aws.String(arn),
-				DomainName:     aws.String(domainName),
-				Status:         types.CertificateStatus(status),
-				Type:           types.CertificateType(cType),
-				FailureReason:  types.FailureReason(failurReason),
-			},
-		}, nil
+		return dco, nil
 	})
 }
 
 // GenerateMockACMListCertificatesAPI returns MockACMDescribeCertificateAPI.
-func GenerateMockACMListCertificatesAPI(arnBase, domainBase string, count int) MockACMListCertificatesAPI {
+func GenerateMockACMListCertificatesAPI(mockParams []MockParams) MockACMListCertificatesAPI {
 	return MockACMListCertificatesAPI(func(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 		var csList []types.CertificateSummary
 
-		for i := 0; i < count; i++ {
+		for _, mp := range mockParams {
 			csList = append(csList, types.CertificateSummary{
-				CertificateArn: aws.String(arnBase + strconv.Itoa(i+1)),
-				DomainName:     aws.String(fmt.Sprintf("test%s.%s", strconv.Itoa(i+1), domainBase)),
+				CertificateArn: aws.String(mp.Arn),
+				DomainName:     aws.String(mp.DomainName),
 			})
 		}
 

@@ -9,11 +9,13 @@ import (
 )
 
 func TestGetCertificates(t *testing.T) {
-	params := MockParams{
-		Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
-		DomainName:      "test.example.com",
-		Status:          "ISSUED",
-		CertificateType: "AMAZON_ISSUED",
+	params := []MockParams{
+		{
+			Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
+			DomainName:      "test.example.com",
+			Status:          "ISSUED",
+			CertificateType: "AMAZON_ISSUED",
+		},
 	}
 
 	cases := []struct {
@@ -72,10 +74,19 @@ func TestListCertificateSummaries(t *testing.T) {
 		{
 			name: "normal",
 			client: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI(MockParams{
-					ArnBase:        "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-",
-					DomainNameBase: "example.com",
-					Count:          3,
+				return GenerateMockACMAPI([]MockParams{
+					{
+						Arn:        "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-1",
+						DomainName: "test1.example.com",
+					},
+					{
+						Arn:        "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-2",
+						DomainName: "test2.example.com",
+					},
+					{
+						Arn:        "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-3",
+						DomainName: "test3.example.com",
+					},
 				})
 			},
 			wantErr: false,
@@ -99,6 +110,77 @@ func TestListCertificateSummaries(t *testing.T) {
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			c, err := ListCertificateSummaries(tt.client(t))
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expect, c)
+		})
+	}
+}
+
+func TestListCertificates(t *testing.T) {
+	cases := []struct {
+		name    string
+		client  func(t *testing.T) MockACMAPI
+		wantErr bool
+		expect  []Certificate
+	}{
+		{
+			name: "normal",
+			client: func(t *testing.T) MockACMAPI {
+				return GenerateMockACMAPI([]MockParams{
+					{
+						Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-1",
+						DomainName:      "test1.example.com",
+						Status:          "ISSUED",
+						CertificateType: "AMAZON_ISSUED",
+					},
+					{
+						Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-2",
+						DomainName:      "test2.example.com",
+						Status:          "ISSUED",
+						CertificateType: "AMAZON_ISSUED",
+					},
+					{
+						Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-3",
+						DomainName:      "test3.example.com",
+						Status:          "ISSUED",
+						CertificateType: "AMAZON_ISSUED",
+					},
+				})
+			},
+			wantErr: false,
+			expect: []Certificate{
+				{
+					ARN:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-1",
+					DomainName:    "test1.example.com",
+					Status:        "ISSUED",
+					Type:          "AMAZON_ISSUED",
+					FailureReason: "",
+				},
+				{
+					ARN:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-2",
+					DomainName:    "test2.example.com",
+					Status:        "ISSUED",
+					Type:          "AMAZON_ISSUED",
+					FailureReason: "",
+				},
+				{
+					ARN:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-3",
+					DomainName:    "test3.example.com",
+					Status:        "ISSUED",
+					Type:          "AMAZON_ISSUED",
+					FailureReason: "",
+				},
+			},
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := ListCertificates(tt.client(t))
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
