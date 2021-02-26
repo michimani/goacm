@@ -12,8 +12,8 @@ import (
 
 // ACMgo is a structure that wraps an ACM client.
 type ACMgo struct {
-	client *acm.Client
-	region string
+	Client *acm.Client
+	Region string
 }
 
 // NewACMgo returns a new ACMgo object.
@@ -24,8 +24,8 @@ func NewACMgo(region string) (*ACMgo, error) {
 	}
 
 	return &ACMgo{
-		client: acm.NewFromConfig(cfg),
-		region: region,
+		Client: acm.NewFromConfig(cfg),
+		Region: region,
 	}, nil
 }
 
