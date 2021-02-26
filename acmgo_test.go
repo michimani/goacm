@@ -9,24 +9,24 @@ import (
 )
 
 func TestGetCertificates(t *testing.T) {
+	params := MockParams{
+		Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
+		DomainName:      "test.example.com",
+		Status:          "ISSUED",
+		CertificateType: "AMAZON_ISSUED",
+	}
+
 	cases := []struct {
 		name    string
-		client  func(t *testing.T) MockACMDescribeCertificateAPI
+		client  func(t *testing.T) MockACMAPI
 		arn     string
 		wantErr bool
 		expect  Certificate
 	}{
 		{
 			name: "normal",
-			client: func(t *testing.T) MockACMDescribeCertificateAPI {
-				return GenerateMockACMDescribeCertificateAPI(
-					t,
-					"arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
-					"test.example.com",
-					"ISSUED",
-					"AMAZON_ISSUED",
-					"",
-				)
+			client: func(t *testing.T) MockACMAPI {
+				return GenerateMockACMAPI(params)
 			},
 			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
 			wantErr: false,
@@ -40,15 +40,8 @@ func TestGetCertificates(t *testing.T) {
 		},
 		{
 			name: "notFound",
-			client: func(t *testing.T) MockACMDescribeCertificateAPI {
-				return GenerateMockACMDescribeCertificateAPI(
-					t,
-					"arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
-					"test.example.com",
-					"ISSUED",
-					"AMAZON_ISSUED",
-					"",
-				)
+			client: func(t *testing.T) MockACMAPI {
+				return GenerateMockACMAPI(params)
 			},
 			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/not-found-arn",
 			wantErr: true,
@@ -57,32 +50,33 @@ func TestGetCertificates(t *testing.T) {
 	}
 
 	for _, tt := range cases {
-		c, err := GetCertificate(tt.client(t), tt.arn)
-		if tt.wantErr {
-			assert.Error(t, err)
-			return
-		}
-		assert.NoError(t, err)
-		assert.Equal(t, tt.expect, c)
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := GetCertificate(tt.client(t), tt.arn)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expect, c)
+		})
 	}
 }
 
 func TestListCertificateSummaries(t *testing.T) {
 	cases := []struct {
 		name    string
-		client  func(t *testing.T) MockACMListCertificatesAPI
+		client  func(t *testing.T) MockACMAPI
 		wantErr bool
 		expect  []types.CertificateSummary
 	}{
 		{
 			name: "normal",
-			client: func(t *testing.T) MockACMListCertificatesAPI {
-				return GenerateMockACMListCertificatesAPI(
-					t,
-					"arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-",
-					"example.com",
-					3,
-				)
+			client: func(t *testing.T) MockACMAPI {
+				return GenerateMockACMAPI(MockParams{
+					ArnBase:        "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-",
+					DomainNameBase: "example.com",
+					Count:          3,
+				})
 			},
 			wantErr: false,
 			expect: []types.CertificateSummary{
@@ -103,12 +97,14 @@ func TestListCertificateSummaries(t *testing.T) {
 	}
 
 	for _, tt := range cases {
-		c, err := ListCertificateSummaries(tt.client(t))
-		if tt.wantErr {
-			assert.Error(t, err)
-			return
-		}
-		assert.NoError(t, err)
-		assert.Equal(t, tt.expect, c)
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := ListCertificateSummaries(tt.client(t))
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expect, c)
+		})
 	}
 }

@@ -5,12 +5,29 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 	"github.com/aws/aws-sdk-go-v2/service/acm/types"
 )
+
+// MockParams is a structure with the elements needed to generate a mock.
+type MockParams struct {
+	Arn             string
+	DomainName      string
+	ArnBase         string
+	DomainNameBase  string
+	Status          string
+	CertificateType string
+	FailureReason   string
+	Count           int
+}
+
+// MockACMAPI is a struct that represents an ACM client.
+type MockACMAPI struct {
+	DescribeCertificateAPI MockACMDescribeCertificateAPI
+	ListCertificatesAPI    MockACMListCertificatesAPI
+}
 
 // MockACMDescribeCertificateAPI is a type that represents a function that mock ACM's DescribeCertificate.
 type MockACMDescribeCertificateAPI func(ctx context.Context, params *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error)
@@ -19,21 +36,28 @@ type MockACMDescribeCertificateAPI func(ctx context.Context, params *acm.Describ
 type MockACMListCertificatesAPI func(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error)
 
 // DescribeCertificate returns a function that mock original of ACM DescribeCertificate.
-func (m MockACMDescribeCertificateAPI) DescribeCertificate(ctx context.Context, params *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
-	return m(ctx, params, optFns...)
+func (m MockACMAPI) DescribeCertificate(ctx context.Context, params *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
+	return m.DescribeCertificateAPI(ctx, params, optFns...)
 }
 
 // ListCertificates returns a function that mock original of ACM ListCertificates.
-func (m MockACMListCertificatesAPI) ListCertificates(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
-	return m(ctx, params, optFns...)
+func (m MockACMAPI) ListCertificates(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	return m.ListCertificatesAPI(ctx, params, optFns...)
 }
 
-// GenerateMockACMDescribeCertificateAPI returns MockACMDescribeCertificateAPI
-func GenerateMockACMDescribeCertificateAPI(t *testing.T, arn, domainName, status, cType, failurReason string) MockACMDescribeCertificateAPI {
+// GenerateMockACMAPI return MockACMAPI.
+func GenerateMockACMAPI(p MockParams) MockACMAPI {
+	return MockACMAPI{
+		DescribeCertificateAPI: GenerateMockACMDescribeCertificateAPI(p.Arn, p.DomainName, p.Status, p.CertificateType, p.FailureReason),
+		ListCertificatesAPI:    GenerateMockACMListCertificatesAPI(p.ArnBase, p.DomainNameBase, p.Count),
+	}
+}
+
+// GenerateMockACMDescribeCertificateAPI returns MockACMDescribeCertificateAPI.
+func GenerateMockACMDescribeCertificateAPI(arn, domainName, status, cType, failurReason string) MockACMDescribeCertificateAPI {
 	return MockACMDescribeCertificateAPI(func(ctx context.Context, params *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
-		t.Helper()
 		if params.CertificateArn == nil {
-			t.Fatal("expect Certificate ARN to not be nil")
+			return nil, errors.New("expect Certificate ARN to not be nil")
 		}
 
 		if aws.ToString(params.CertificateArn) != arn {
@@ -52,10 +76,9 @@ func GenerateMockACMDescribeCertificateAPI(t *testing.T, arn, domainName, status
 	})
 }
 
-// GenerateMockACMListCertificatesAPI returns MockACMDescribeCertificateAPI
-func GenerateMockACMListCertificatesAPI(t *testing.T, arnBase, domainBase string, count int) MockACMListCertificatesAPI {
+// GenerateMockACMListCertificatesAPI returns MockACMDescribeCertificateAPI.
+func GenerateMockACMListCertificatesAPI(arnBase, domainBase string, count int) MockACMListCertificatesAPI {
 	return MockACMListCertificatesAPI(func(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
-		t.Helper()
 		var csList []types.CertificateSummary
 
 		for i := 0; i < count; i++ {
