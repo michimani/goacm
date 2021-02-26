@@ -33,7 +33,7 @@ func TestGetCertificates(t *testing.T) {
 			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
 			wantErr: false,
 			expect: Certificate{
-				ARN:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
+				Arn:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
 				DomainName:    "test.example.com",
 				Status:        "ISSUED",
 				Type:          "AMAZON_ISSUED",
@@ -154,21 +154,21 @@ func TestListCertificates(t *testing.T) {
 			wantErr: false,
 			expect: []Certificate{
 				{
-					ARN:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-1",
+					Arn:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-1",
 					DomainName:    "test1.example.com",
 					Status:        "ISSUED",
 					Type:          "AMAZON_ISSUED",
 					FailureReason: "",
 				},
 				{
-					ARN:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-2",
+					Arn:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-2",
 					DomainName:    "test2.example.com",
 					Status:        "ISSUED",
 					Type:          "AMAZON_ISSUED",
 					FailureReason: "",
 				},
 				{
-					ARN:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-3",
+					Arn:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-3",
 					DomainName:    "test3.example.com",
 					Status:        "ISSUED",
 					Type:          "AMAZON_ISSUED",

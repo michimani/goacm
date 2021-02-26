@@ -37,7 +37,7 @@ func main() {
 	}
 
 	for _, c := range certificates {
-		fmt.Println(c.ARN)
+		fmt.Println(c.Arn)
 	}
 	return
 }

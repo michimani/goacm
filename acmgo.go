@@ -51,7 +51,7 @@ func GetCertificate(api ACMDescribeCertificateAPI, arn string) (Certificate, err
 	}
 
 	return Certificate{
-		ARN:           arn,
+		Arn:           arn,
 		DomainName:    aws.ToString(out.Certificate.DomainName),
 		Status:        out.Certificate.Status,
 		Type:          out.Certificate.Type,

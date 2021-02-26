@@ -25,7 +25,7 @@ type ACMDescribeCertificateAPI interface {
 
 // Certificate is a structure that represents a Certificate.
 type Certificate struct {
-	ARN           string
+	Arn           string
 	Region        string
 	DomainName    string
 	Type          types.CertificateType
