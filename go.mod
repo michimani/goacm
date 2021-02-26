@@ -1,4 +1,4 @@
-module acmgo
+module github.com/michimani/acmgo
 
 go 1.16
 
