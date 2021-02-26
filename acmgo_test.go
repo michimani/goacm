@@ -3,11 +3,12 @@ package acmgo
 import (
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/acm/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetCertificates(t *testing.T) {
-
 	cases := []struct {
 		name    string
 		client  func(t *testing.T) MockACMDescribeCertificateAPI
@@ -57,6 +58,52 @@ func TestGetCertificates(t *testing.T) {
 
 	for _, tt := range cases {
 		c, err := GetCertificate(tt.client(t), tt.arn)
+		if tt.wantErr {
+			assert.Error(t, err)
+			return
+		}
+		assert.NoError(t, err)
+		assert.Equal(t, tt.expect, c)
+	}
+}
+
+func TestListCertificateSummaries(t *testing.T) {
+	cases := []struct {
+		name    string
+		client  func(t *testing.T) MockACMListCertificatesAPI
+		wantErr bool
+		expect  []types.CertificateSummary
+	}{
+		{
+			name: "normal",
+			client: func(t *testing.T) MockACMListCertificatesAPI {
+				return GenerateMockACMListCertificatesAPI(
+					t,
+					"arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-",
+					"example.com",
+					3,
+				)
+			},
+			wantErr: false,
+			expect: []types.CertificateSummary{
+				{
+					CertificateArn: aws.String("arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-1"),
+					DomainName:     aws.String("test1.example.com"),
+				},
+				{
+					CertificateArn: aws.String("arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-2"),
+					DomainName:     aws.String("test2.example.com"),
+				},
+				{
+					CertificateArn: aws.String("arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-3"),
+					DomainName:     aws.String("test3.example.com"),
+				},
+			},
+		},
+	}
+
+	for _, tt := range cases {
+		c, err := ListCertificateSummaries(tt.client(t))
 		if tt.wantErr {
 			assert.Error(t, err)
 			return

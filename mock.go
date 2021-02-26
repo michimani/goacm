@@ -3,6 +3,8 @@ package acmgo
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -46,6 +48,25 @@ func GenerateMockACMDescribeCertificateAPI(t *testing.T, arn, domainName, status
 				Type:           types.CertificateType(cType),
 				FailureReason:  types.FailureReason(failurReason),
 			},
+		}, nil
+	})
+}
+
+// GenerateMockACMListCertificatesAPI returns MockACMDescribeCertificateAPI
+func GenerateMockACMListCertificatesAPI(t *testing.T, arnBase, domainBase string, count int) MockACMListCertificatesAPI {
+	return MockACMListCertificatesAPI(func(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+		t.Helper()
+		var csList []types.CertificateSummary
+
+		for i := 0; i < count; i++ {
+			csList = append(csList, types.CertificateSummary{
+				CertificateArn: aws.String(arnBase + strconv.Itoa(i+1)),
+				DomainName:     aws.String(fmt.Sprintf("test%s.%s", strconv.Itoa(i+1), domainBase)),
+			})
+		}
+
+		return &acm.ListCertificatesOutput{
+			CertificateSummaryList: csList,
 		}, nil
 	})
 }
