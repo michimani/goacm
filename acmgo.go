@@ -59,7 +59,7 @@ func GetCertificate(api ACMDescribeCertificateAPI, arn string) (Certificate, err
 	}, nil
 }
 
-// ListCertificates is returns list of certificate.
+// ListCertificates returns list of certificate.
 func ListCertificates(api ACMAPI) ([]Certificate, error) {
 	summary, err := ListCertificateSummaries(api)
 	if err != nil {
@@ -77,4 +77,17 @@ func ListCertificates(api ACMAPI) ([]Certificate, error) {
 	}
 
 	return cList, nil
+}
+
+// DeleteCertificate returns an error if deleting the certificate fails.
+func DeleteCertificate(api ACMDeleteCertificateAPI, arn string) error {
+	in := acm.DeleteCertificateInput{
+		CertificateArn: aws.String(arn),
+	}
+
+	if _, err := api.DeleteCertificate(context.TODO(), &in); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -4,11 +4,12 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/acm"
 	"github.com/aws/aws-sdk-go-v2/service/acm/types"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetCertificates(t *testing.T) {
+func TestGetCertificate(t *testing.T) {
 	params := []MockParams{
 		{
 			Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
@@ -187,6 +188,52 @@ func TestListCertificates(t *testing.T) {
 			}
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expect, c)
+		})
+	}
+}
+
+func TestDeleteCertificate(t *testing.T) {
+	params := []MockParams{
+		{
+			Arn: "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
+		},
+	}
+
+	cases := []struct {
+		name    string
+		client  func(t *testing.T) MockACMAPI
+		arn     string
+		wantErr bool
+		expect  *acm.DeleteCertificateOutput
+	}{
+		{
+			name: "normal",
+			client: func(t *testing.T) MockACMAPI {
+				return GenerateMockACMAPI(params)
+			},
+			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
+			wantErr: false,
+			expect:  &acm.DeleteCertificateOutput{},
+		},
+		{
+			name: "notExists",
+			client: func(t *testing.T) MockACMAPI {
+				return GenerateMockACMAPI(params)
+			},
+			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/not-exists-arn",
+			wantErr: true,
+			expect:  nil,
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			err := DeleteCertificate(tt.client(t), tt.arn)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
 		})
 	}
 }

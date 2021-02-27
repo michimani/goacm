@@ -18,9 +18,14 @@ type ACMListCertificatesAPI interface {
 	ListCertificates(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error)
 }
 
-// ACMDescribeCertificateAPI is an interface that defines the set of ACM API operations required by the GetCertificate function.
+// ACMDescribeCertificateAPI is an interface that defines the set of ACM API operations required by the DescribeCertificate function.
 type ACMDescribeCertificateAPI interface {
 	DescribeCertificate(ctx context.Context, params *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error)
+}
+
+// ACMDeleteCertificateAPI is an interface that defines the set of ACM API operations required by the DeleteCertificate function.
+type ACMDeleteCertificateAPI interface {
+	DeleteCertificate(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
 }
 
 // Certificate is a structure that represents a Certificate.

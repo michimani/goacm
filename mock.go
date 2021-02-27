@@ -23,13 +23,17 @@ type MockParams struct {
 type MockACMAPI struct {
 	DescribeCertificateAPI MockACMDescribeCertificateAPI
 	ListCertificatesAPI    MockACMListCertificatesAPI
+	DeleteCertificateAPI   MockACMDeleteCertificateAPI
 }
 
 // MockACMDescribeCertificateAPI is a type that represents a function that mock ACM's DescribeCertificate.
 type MockACMDescribeCertificateAPI func(ctx context.Context, params *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error)
 
-// MockACMListCertificatesAPI is a type that represents a function that mock ACM's ListCertificatesOutput.
+// MockACMListCertificatesAPI is a type that represents a function that mock ACM's ListCertificates.
 type MockACMListCertificatesAPI func(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error)
+
+// MockACMDeleteCertificateAPI is a type that represents a function that mock ACM's DeleteCertificate.
+type MockACMDeleteCertificateAPI func(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
 
 // DescribeCertificate returns a function that mock original of ACM DescribeCertificate.
 func (m MockACMAPI) DescribeCertificate(ctx context.Context, params *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
@@ -41,11 +45,17 @@ func (m MockACMAPI) ListCertificates(ctx context.Context, params *acm.ListCertif
 	return m.ListCertificatesAPI(ctx, params, optFns...)
 }
 
+// DeleteCertificate returns a function that mock original of ACM DeleteCertificate.
+func (m MockACMAPI) DeleteCertificate(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
+	return m.DeleteCertificateAPI(ctx, params, optFns...)
+}
+
 // GenerateMockACMAPI return MockACMAPI.
 func GenerateMockACMAPI(mockParams []MockParams) MockACMAPI {
 	return MockACMAPI{
 		DescribeCertificateAPI: GenerateMockACMDescribeCertificateAPI(mockParams),
 		ListCertificatesAPI:    GenerateMockACMListCertificatesAPI(mockParams),
+		DeleteCertificateAPI:   GenerateMockACMDeleteCertificateAPI(mockParams),
 	}
 }
 
@@ -96,5 +106,22 @@ func GenerateMockACMListCertificatesAPI(mockParams []MockParams) MockACMListCert
 		return &acm.ListCertificatesOutput{
 			CertificateSummaryList: csList,
 		}, nil
+	})
+}
+
+// GenerateMockACMDeleteCertificateAPI returns MockACMDeleteCertificateAPI
+func GenerateMockACMDeleteCertificateAPI(MockParams []MockParams) MockACMDeleteCertificateAPI {
+	return MockACMDeleteCertificateAPI(func(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
+		var availableCertificates map[string]bool = map[string]bool{}
+
+		for _, mp := range MockParams {
+			availableCertificates[mp.Arn] = true
+		}
+
+		if _, ok := availableCertificates[*params.CertificateArn]; !ok {
+			return nil, errors.New("not exists")
+		}
+
+		return &acm.DeleteCertificateOutput{}, nil
 	})
 }
