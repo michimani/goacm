@@ -11,7 +11,6 @@ acmgo is a simple package for using AWS Certificate Manager from applications im
 ### TODO
 
 - Publish Certificate
-- Delete Certificate
 
 # Example
 
