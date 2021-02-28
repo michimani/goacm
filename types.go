@@ -1,4 +1,4 @@
-package acmgo
+package goacm
 
 import (
 	"context"

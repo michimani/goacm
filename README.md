@@ -1,7 +1,7 @@
-acmgo
+goacm
 ===
 
-acmgo is a simple package for using AWS Certificate Manager from applications implimented Golang.
+goacm is a simple package for using AWS Certificate Manager from applications implimented Golang.
 
 # Features
 
@@ -20,17 +20,17 @@ package main
 import (
 	"fmt"
 
-	"github.com/michimani/acmgo"
+	"github.com/michimani/goacm"
 )
 
 func main() {
-	acmg, err := acmgo.NewACMgo("ap-northeast-1")
+	acmg, err := goacm.NewGoACM("ap-northeast-1")
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	certificates, err := acmgo.ListCertificates(acmg.Client)
+	certificates, err := goacm.ListCertificates(acmg.Client)
 	if err != nil {
 		fmt.Println(err.Error())
 	}

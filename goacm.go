@@ -1,4 +1,4 @@
-package acmgo
+package goacm
 
 import (
 	"context"
@@ -13,21 +13,21 @@ import (
 	route53Types "github.com/aws/aws-sdk-go-v2/service/route53/types"
 )
 
-// ACMgo is a structure that wraps an ACM client.
-type ACMgo struct {
+// GoACM is a structure that wraps an ACM client.
+type GoACM struct {
 	ACMClient     *acm.Client
 	Route53Client *route53.Client
 	Region        string
 }
 
-// NewACMgo returns a new ACMgo object.
-func NewACMgo(region string) (*ACMgo, error) {
+// NewGoACM returns a new GoACM object.
+func NewGoACM(region string) (*GoACM, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
 	if err != nil {
 		return nil, err
 	}
 
-	return &ACMgo{
+	return &GoACM{
 		ACMClient:     acm.NewFromConfig(cfg),
 		Route53Client: route53.NewFromConfig(cfg),
 		Region:        region,
