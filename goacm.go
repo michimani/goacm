@@ -103,6 +103,12 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 	reqIn := acm.RequestCertificateInput{
 		DomainName:       aws.String(targetDomain),
 		ValidationMethod: acmTypes.ValidationMethod(method),
+		DomainValidationOptions: []acmTypes.DomainValidationOption{
+			{
+				DomainName:       aws.String(targetDomain),
+				ValidationDomain: aws.String(hostedDomain),
+			},
+		},
 	}
 	r, err := aAPI.RequestCertificate(context.TODO(), &reqIn)
 	if err != nil {
