@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -118,6 +119,8 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 	if method == ValidationMethodEmail {
 		return nil
 	}
+
+	time.Sleep(time.Second * 5)
 
 	dcIn := acm.DescribeCertificateInput{
 		CertificateArn: r.CertificateArn,
