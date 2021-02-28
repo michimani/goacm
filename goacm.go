@@ -130,7 +130,13 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 		return err
 	}
 	if c.Certificate.DomainValidationOptions == nil {
-		return errors.New("DomainValidationOptions dose not exists")
+		errMsg := "DomainValidationOptions dose not exists"
+		if err := RollbackIssueCertificate(aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
+			errMsg += fmt.Sprintf("; Failed to rollback to issue certificate: %v", err)
+		} else {
+			errMsg += "; rollbacked to issue certificate"
+		}
+		return errors.New(errMsg)
 	}
 
 	vRecordName := c.Certificate.DomainValidationOptions[0].ResourceRecord.Name
@@ -139,17 +145,29 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 	lhzIn := route53.ListHostedZonesInput{}
 	h, err := rAPI.ListHostedZones(context.TODO(), &lhzIn)
 	if err != nil {
-		return err
+		errMsg := err.Error()
+		if err := RollbackIssueCertificate(aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
+			errMsg += fmt.Sprintf("; Failed to rollback to issue certificate: %v", err)
+		} else {
+			errMsg += "; rollbacked to issue certificate"
+		}
+		return errors.New(errMsg)
 	}
 
 	hzID := ""
 	for _, hz := range h.HostedZones {
-		if *hz.Name == hostedDomain {
+		if *hz.Name+"." == hostedDomain {
 			hzID = *hz.Id
 		}
 	}
 	if hzID == "" {
-		return errors.New("Cannot get hosted zone ID")
+		errMsg := "Cannot get hosted zone ID"
+		if err := RollbackIssueCertificate(aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
+			errMsg += fmt.Sprintf("; Failed to rollback to issue certificate: %v", err)
+		} else {
+			errMsg += "; rollbacked to issue certificate"
+		}
+		return errors.New(errMsg)
 	}
 
 	crsIn := route53.ChangeResourceRecordSetsInput{
@@ -175,13 +193,19 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 
 	_, err = rAPI.ChangeResourceRecordSets(context.TODO(), &crsIn)
 	if err != nil {
-		return err
+		errMsg := err.Error()
+		if err := RollbackIssueCertificate(aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
+			errMsg += fmt.Sprintf("; Failed to rollback to issue certificate: %v", err)
+		} else {
+			errMsg += "; rollbacked to issue certificate"
+		}
+		return errors.New(errMsg)
 	}
 
 	return nil
 }
 
 // RollbackIssueCertificate rollbacks to issue an SSL certificate.
-func RollbackIssueCertificate(aAPI ACMAPI, rAPI Route53API) error {
-	return nil
+func RollbackIssueCertificate(aAPI ACMAPI, rAPI Route53API, arn string) error {
+	return DeleteCertificate(aAPI, arn)
 }
