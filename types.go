@@ -72,3 +72,14 @@ const (
 	// ValidationMethodEmail is a construct valur for validating certificate with EMAIL.
 	ValidationMethodEmail ValidationMethod = "EMAIL"
 )
+
+// IssueCertificateResult is a structure that represents a reault of IssueCertificate.
+type IssueCertificateResult struct {
+	CertificateArn        string
+	DomainName            string
+	HostedDomainName      string
+	HosteZoneID           string
+	ValidationMethod      string
+	ValidationRecordName  string
+	ValidationRecordValue string
+}

@@ -99,7 +99,13 @@ func DeleteCertificate(api ACMDeleteCertificateAPI, arn string) error {
 }
 
 // IssueCertificate issues an SSL certificate for the specified domain.
-func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, targetDomain, hostedDomain string) error {
+func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, targetDomain, hostedDomain string) (IssueCertificateResult, error) {
+	var result IssueCertificateResult = IssueCertificateResult{
+		DomainName:       targetDomain,
+		HostedDomainName: hostedDomain,
+		ValidationMethod: string(method),
+	}
+
 	// request certificate
 	reqIn := acm.RequestCertificateInput{
 		DomainName:       aws.String(targetDomain),
@@ -113,11 +119,13 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 	}
 	r, err := aAPI.RequestCertificate(context.TODO(), &reqIn)
 	if err != nil {
-		return err
+		return IssueCertificateResult{}, err
 	}
 
+	result.CertificateArn = aws.ToString(r.CertificateArn)
+
 	if method == ValidationMethodEmail {
-		return nil
+		return result, nil
 	}
 
 	time.Sleep(time.Second * 5)
@@ -127,7 +135,7 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 	}
 	c, err := aAPI.DescribeCertificate(context.TODO(), &dcIn)
 	if err != nil {
-		return err
+		return IssueCertificateResult{}, err
 	}
 	if c.Certificate.DomainValidationOptions == nil {
 		errMsg := "DomainValidationOptions dose not exists"
@@ -136,11 +144,14 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 		} else {
 			errMsg += "; rollbacked to issue certificate"
 		}
-		return errors.New(errMsg)
+		return IssueCertificateResult{}, errors.New(errMsg)
 	}
 
 	vRecordName := c.Certificate.DomainValidationOptions[0].ResourceRecord.Name
 	vRecordValue := c.Certificate.DomainValidationOptions[0].ResourceRecord.Value
+
+	result.ValidationRecordName = *vRecordName
+	result.ValidationRecordValue = *vRecordValue
 
 	lhzIn := route53.ListHostedZonesInput{}
 	h, err := rAPI.ListHostedZones(context.TODO(), &lhzIn)
@@ -151,7 +162,7 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 		} else {
 			errMsg += "; rollbacked to issue certificate"
 		}
-		return errors.New(errMsg)
+		return IssueCertificateResult{}, errors.New(errMsg)
 	}
 
 	hzID := ""
@@ -167,8 +178,10 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 		} else {
 			errMsg += "; rollbacked to issue certificate"
 		}
-		return errors.New(errMsg)
+		return IssueCertificateResult{}, errors.New(errMsg)
 	}
+
+	result.HosteZoneID = hzID
 
 	crsIn := route53.ChangeResourceRecordSetsInput{
 		HostedZoneId: aws.String(hzID),
@@ -178,7 +191,7 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 					Action: route53Types.ChangeActionCreate,
 					ResourceRecordSet: &route53Types.ResourceRecordSet{
 						Name: vRecordName,
-						Type: route53Types.RRType("CNAME"),
+						Type: route53Types.RRTypeCname,
 						TTL:  aws.Int64(300),
 						ResourceRecords: []route53Types.ResourceRecord{
 							{
@@ -199,10 +212,10 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 		} else {
 			errMsg += "; rollbacked to issue certificate"
 		}
-		return errors.New(errMsg)
+		return IssueCertificateResult{}, errors.New(errMsg)
 	}
 
-	return nil
+	return result, nil
 }
 
 // RollbackIssueCertificate rollbacks to issue an SSL certificate.
