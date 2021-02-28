@@ -2,18 +2,22 @@ package acmgo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
-	"github.com/aws/aws-sdk-go-v2/service/acm/types"
+	acmTypes "github.com/aws/aws-sdk-go-v2/service/acm/types"
+	"github.com/aws/aws-sdk-go-v2/service/route53"
+	route53Types "github.com/aws/aws-sdk-go-v2/service/route53/types"
 )
 
 // ACMgo is a structure that wraps an ACM client.
 type ACMgo struct {
-	Client *acm.Client
-	Region string
+	ACMClient     *acm.Client
+	Route53Client *route53.Client
+	Region        string
 }
 
 // NewACMgo returns a new ACMgo object.
@@ -24,13 +28,14 @@ func NewACMgo(region string) (*ACMgo, error) {
 	}
 
 	return &ACMgo{
-		Client: acm.NewFromConfig(cfg),
-		Region: region,
+		ACMClient:     acm.NewFromConfig(cfg),
+		Route53Client: route53.NewFromConfig(cfg),
+		Region:        region,
 	}, nil
 }
 
 // ListCertificateSummaries returns a list of certificate summary.
-func ListCertificateSummaries(api ACMListCertificatesAPI) ([]types.CertificateSummary, error) {
+func ListCertificateSummaries(api ACMListCertificatesAPI) ([]acmTypes.CertificateSummary, error) {
 	in := acm.ListCertificatesInput{}
 	out, err := api.ListCertificates(context.TODO(), &in)
 	if err != nil {
@@ -89,5 +94,85 @@ func DeleteCertificate(api ACMDeleteCertificateAPI, arn string) error {
 		return err
 	}
 
+	return nil
+}
+
+// IssueCertificate issues an SSL certificate for the specified domain.
+func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, targetDomain, hostedDomain string) error {
+	// request certificate
+	reqIn := acm.RequestCertificateInput{
+		DomainName:       aws.String(targetDomain),
+		ValidationMethod: acmTypes.ValidationMethod(method),
+	}
+	r, err := aAPI.RequestCertificate(context.TODO(), &reqIn)
+	if err != nil {
+		return err
+	}
+
+	if method == ValidationMethodEmail {
+		return nil
+	}
+
+	dcIn := acm.DescribeCertificateInput{
+		CertificateArn: r.CertificateArn,
+	}
+	c, err := aAPI.DescribeCertificate(context.TODO(), &dcIn)
+	if err != nil {
+		return err
+	}
+	if c.Certificate.DomainValidationOptions == nil {
+		return errors.New("DomainValidationOptions dose not exists")
+	}
+
+	vRecordName := c.Certificate.DomainValidationOptions[0].ResourceRecord.Name
+	vRecordValue := c.Certificate.DomainValidationOptions[0].ResourceRecord.Value
+
+	lhzIn := route53.ListHostedZonesInput{}
+	h, err := rAPI.ListHostedZone(context.TODO(), &lhzIn)
+	if err != nil {
+		return err
+	}
+
+	hzID := ""
+	for _, hz := range h.HostedZones {
+		if *hz.Name == hostedDomain {
+			hzID = *hz.Id
+		}
+	}
+	if hzID == "" {
+		return errors.New("Cannot get hosted zone ID")
+	}
+
+	crsIn := route53.ChangeResourceRecordSetsInput{
+		HostedZoneId: aws.String(hzID),
+		ChangeBatch: &route53Types.ChangeBatch{
+			Changes: []route53Types.Change{
+				{
+					Action: route53Types.ChangeActionCreate,
+					ResourceRecordSet: &route53Types.ResourceRecordSet{
+						Name: vRecordName,
+						Type: route53Types.RRType("CNAME"),
+						TTL:  aws.Int64(300),
+						ResourceRecords: []route53Types.ResourceRecord{
+							{
+								Value: vRecordValue,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err = rAPI.ChangeResourceRecordSets(context.TODO(), &crsIn)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RollbackIssueCertificate rollbacks to issue an SSL certificate.
+func RollbackIssueCertificate(aAPI ACMAPI, rAPI Route53API) error {
 	return nil
 }

@@ -5,12 +5,21 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 	"github.com/aws/aws-sdk-go-v2/service/acm/types"
+	"github.com/aws/aws-sdk-go-v2/service/route53"
 )
 
 // ACMAPI is an interface that defines ACM API.
 type ACMAPI interface {
 	ACMListCertificatesAPI
 	ACMDescribeCertificateAPI
+	ACMDeleteCertificateAPI
+	ACMRequestCertificateAPI
+}
+
+// Route53API is an interface that defines Route53 API.
+type Route53API interface {
+	Route53ListHostedZoneAPI
+	Route53ChangeResourceRecordSetsAPI
 }
 
 // ACMListCertificatesAPI is an interface that defines the set of ACM API operations required by the ListCertificates function.
@@ -28,6 +37,21 @@ type ACMDeleteCertificateAPI interface {
 	DeleteCertificate(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
 }
 
+// ACMRequestCertificateAPI is an interface that defines the set of ACM API operations required by the DeleteCertificate function.
+type ACMRequestCertificateAPI interface {
+	RequestCertificate(ctx context.Context, params *acm.RequestCertificateInput, optFns ...func(*acm.Options)) (*acm.RequestCertificateOutput, error)
+}
+
+// Route53ListHostedZoneAPI is an interface that defines the set of Route53 API operations required by the ListHostedZone function.
+type Route53ListHostedZoneAPI interface {
+	ListHostedZone(ctx context.Context, params *route53.ListHostedZonesInput, optFns ...func(*route53.Options)) (*route53.ListHostedZonesOutput, error)
+}
+
+// Route53ChangeResourceRecordSetsAPI is an interface that defines the set of Route53 API operations required by the ChangeResourceRecordSets function.
+type Route53ChangeResourceRecordSetsAPI interface {
+	ChangeResourceRecordSets(ctx context.Context, params *route53.ChangeResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ChangeResourceRecordSetsOutput, error)
+}
+
 // Certificate is a structure that represents a Certificate.
 type Certificate struct {
 	Arn           string
@@ -37,3 +61,14 @@ type Certificate struct {
 	Status        types.CertificateStatus
 	FailureReason types.FailureReason
 }
+
+// ValidationMethod is a type that represents the method when requesting a certificate.
+type ValidationMethod types.ValidationMethod
+
+const (
+	// ValidationMethodDNS is a construct valur for validating certificate with DNS.
+	ValidationMethodDNS ValidationMethod = "DNS"
+
+	// ValidationMethodEmail is a construct valur for validating certificate with EMAIL.
+	ValidationMethodEmail ValidationMethod = "EMAIL"
+)
