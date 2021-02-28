@@ -156,7 +156,7 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 
 	hzID := ""
 	for _, hz := range h.HostedZones {
-		if *hz.Name+"." == hostedDomain {
+		if *hz.Name == hostedDomain+"." {
 			hzID = *hz.Id
 		}
 	}
