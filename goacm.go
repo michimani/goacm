@@ -128,7 +128,7 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 	vRecordValue := c.Certificate.DomainValidationOptions[0].ResourceRecord.Value
 
 	lhzIn := route53.ListHostedZonesInput{}
-	h, err := rAPI.ListHostedZone(context.TODO(), &lhzIn)
+	h, err := rAPI.ListHostedZones(context.TODO(), &lhzIn)
 	if err != nil {
 		return err
 	}

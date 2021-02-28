@@ -18,7 +18,7 @@ type ACMAPI interface {
 
 // Route53API is an interface that defines Route53 API.
 type Route53API interface {
-	Route53ListHostedZoneAPI
+	Route53ListHostedZonesAPI
 	Route53ChangeResourceRecordSetsAPI
 }
 
@@ -42,9 +42,9 @@ type ACMRequestCertificateAPI interface {
 	RequestCertificate(ctx context.Context, params *acm.RequestCertificateInput, optFns ...func(*acm.Options)) (*acm.RequestCertificateOutput, error)
 }
 
-// Route53ListHostedZoneAPI is an interface that defines the set of Route53 API operations required by the ListHostedZone function.
-type Route53ListHostedZoneAPI interface {
-	ListHostedZone(ctx context.Context, params *route53.ListHostedZonesInput, optFns ...func(*route53.Options)) (*route53.ListHostedZonesOutput, error)
+// Route53ListHostedZonesAPI is an interface that defines the set of Route53 API operations required by the ListHostedZone function.
+type Route53ListHostedZonesAPI interface {
+	ListHostedZones(ctx context.Context, params *route53.ListHostedZonesInput, optFns ...func(*route53.Options)) (*route53.ListHostedZonesOutput, error)
 }
 
 // Route53ChangeResourceRecordSetsAPI is an interface that defines the set of Route53 API operations required by the ChangeResourceRecordSets function.
