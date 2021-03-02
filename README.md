@@ -1,7 +1,7 @@
 goacm
 ===
 
-goacm is a simple package for using AWS Certificate Manager from applications implimented Golang.
+goacm is a simple package for using AWS Certificate Manager from applications implimented golang.
 
 # Features
 
