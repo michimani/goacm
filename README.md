@@ -8,11 +8,10 @@ goacm is a simple package for using AWS Certificate Manager from applications im
 - List Certificates
 - Get a Certificate
 - Delete a Certificate
+	- with Route 53 RecordSet that validates the domain (if validation method is DNS)
 - Issue an SSL Certificate
-
-### TODO
-
-- Delete a certificate with Route 53 Record sets that validate domain.
+	- Create Certificate
+	- Create Route 53 RecordSet for validating the domain (if validation method is DNS)
 
 # Example
 
