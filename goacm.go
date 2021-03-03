@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
+	"github.com/aws/aws-sdk-go-v2/service/acm/types"
 	acmTypes "github.com/aws/aws-sdk-go-v2/service/acm/types"
 	"github.com/aws/aws-sdk-go-v2/service/route53"
 	route53Types "github.com/aws/aws-sdk-go-v2/service/route53/types"
@@ -56,12 +57,26 @@ func GetCertificate(api ACMDescribeCertificateAPI, arn string) (Certificate, err
 		return Certificate{}, err
 	}
 
+	vMethod := ""
+	recordSet := RecordSet{}
+	if out.Certificate.DomainValidationOptions != nil {
+		vMethod = string(out.Certificate.DomainValidationOptions[0].ValidationMethod)
+		if vMethod == string(types.ValidationMethodDns) {
+			recordSet.HostedDomainName = aws.ToString(out.Certificate.DomainValidationOptions[0].ValidationDomain)
+			recordSet.Name = aws.ToString(out.Certificate.DomainValidationOptions[0].ResourceRecord.Name)
+			recordSet.Value = aws.ToString(out.Certificate.DomainValidationOptions[0].ResourceRecord.Value)
+			recordSet.Type = string(out.Certificate.DomainValidationOptions[0].ResourceRecord.Type)
+		}
+	}
+
 	return Certificate{
-		Arn:           arn,
-		DomainName:    aws.ToString(out.Certificate.DomainName),
-		Status:        out.Certificate.Status,
-		Type:          out.Certificate.Type,
-		FailureReason: out.Certificate.FailureReason,
+		Arn:                 arn,
+		DomainName:          aws.ToString(out.Certificate.DomainName),
+		Status:              string(out.Certificate.Status),
+		Type:                string(out.Certificate.Type),
+		FailureReason:       string(out.Certificate.FailureReason),
+		ValidationMethod:    vMethod,
+		ValidationRecordSet: recordSet,
 	}, nil
 }
 
@@ -86,12 +101,24 @@ func ListCertificates(api ACMAPI) ([]Certificate, error) {
 }
 
 // DeleteCertificate returns an error if deleting the certificate fails.
-func DeleteCertificate(api ACMDeleteCertificateAPI, arn string) error {
+func DeleteCertificate(aAPI ACMAPI, rAPI Route53API, arn string) error {
+	c, err := GetCertificate(aAPI, arn)
+	if err != nil {
+		return err
+	}
+
+	// Delete Route 53 Record that validate domain.
+	if c.ValidationMethod == string(types.ValidationMethodDns) {
+		if err := DeleteRoute53RecordSet(aAPI, rAPI, c.ValidationRecordSet); err != nil {
+			return err
+		}
+	}
+
 	in := acm.DeleteCertificateInput{
 		CertificateArn: aws.String(arn),
 	}
 
-	if _, err := api.DeleteCertificate(context.TODO(), &in); err != nil {
+	if _, err := aAPI.DeleteCertificate(context.TODO(), &in); err != nil {
 		return err
 	}
 
@@ -99,7 +126,7 @@ func DeleteCertificate(api ACMDeleteCertificateAPI, arn string) error {
 }
 
 // IssueCertificate issues an SSL certificate for the specified domain.
-func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, targetDomain, hostedDomain string) (IssueCertificateResult, error) {
+func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method, targetDomain, hostedDomain string) (IssueCertificateResult, error) {
 	var result IssueCertificateResult = IssueCertificateResult{
 		DomainName:       targetDomain,
 		HostedDomainName: hostedDomain,
@@ -124,7 +151,7 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 
 	result.CertificateArn = aws.ToString(r.CertificateArn)
 
-	if method == ValidationMethodEmail {
+	if method == string(types.ValidationMethodEmail) {
 		return result, nil
 	}
 
@@ -220,5 +247,52 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method ValidationMethod, tar
 
 // RollbackIssueCertificate rollbacks to issue an SSL certificate.
 func RollbackIssueCertificate(aAPI ACMAPI, rAPI Route53API, arn string) error {
-	return DeleteCertificate(aAPI, arn)
+	return DeleteCertificate(aAPI, rAPI, arn)
+}
+
+// DeleteRoute53RecordSet deletes a Route 53 record set.
+func DeleteRoute53RecordSet(aAPI ACMAPI, rAPI Route53API, rs RecordSet) error {
+	lhzIn := route53.ListHostedZonesInput{}
+	h, err := rAPI.ListHostedZones(context.TODO(), &lhzIn)
+	if err != nil {
+		return err
+	}
+
+	hzID := ""
+	for _, hz := range h.HostedZones {
+		if aws.ToString(hz.Name) == rs.HostedDomainName+"." {
+			hzID = aws.ToString(hz.Id)
+		}
+	}
+	if hzID == "" {
+		return errors.New("Cannot get hosted zone ID")
+	}
+
+	crsIn := route53.ChangeResourceRecordSetsInput{
+		HostedZoneId: aws.String(hzID),
+		ChangeBatch: &route53Types.ChangeBatch{
+			Changes: []route53Types.Change{
+				{
+					Action: route53Types.ChangeActionDelete,
+					ResourceRecordSet: &route53Types.ResourceRecordSet{
+						Name: aws.String(rs.Name),
+						Type: route53Types.RRType(rs.Type),
+						ResourceRecords: []route53Types.ResourceRecord{
+							{
+								Value: aws.String(rs.Value),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err = rAPI.ChangeResourceRecordSets(context.TODO(), &crsIn)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

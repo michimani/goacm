@@ -7,7 +7,7 @@ import (
 )
 
 // MockParams is a structure with the elements needed to generate a mock.
-type MockParams struct {
+type MockACMParams struct {
 	Arn             string
 	DomainName      string
 	Status          string

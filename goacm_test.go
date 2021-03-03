@@ -10,7 +10,7 @@ import (
 )
 
 func TestGetCertificate(t *testing.T) {
-	params := []MockParams{
+	ap := []MockACMParams{
 		{
 			Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
 			DomainName:      "test.example.com",
@@ -20,16 +20,16 @@ func TestGetCertificate(t *testing.T) {
 	}
 
 	cases := []struct {
-		name    string
-		client  func(t *testing.T) MockACMAPI
-		arn     string
-		wantErr bool
-		expect  Certificate
+		name      string
+		acmClient func(t *testing.T) MockACMAPI
+		arn       string
+		wantErr   bool
+		expect    Certificate
 	}{
 		{
 			name: "normal",
-			client: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI(params)
+			acmClient: func(t *testing.T) MockACMAPI {
+				return GenerateMockACMAPI(ap)
 			},
 			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
 			wantErr: false,
@@ -43,8 +43,8 @@ func TestGetCertificate(t *testing.T) {
 		},
 		{
 			name: "notFound",
-			client: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI(params)
+			acmClient: func(t *testing.T) MockACMAPI {
+				return GenerateMockACMAPI(ap)
 			},
 			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/not-found-arn",
 			wantErr: true,
@@ -54,7 +54,7 @@ func TestGetCertificate(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			c, err := GetCertificate(tt.client(t), tt.arn)
+			c, err := GetCertificate(tt.acmClient(t), tt.arn)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -67,15 +67,15 @@ func TestGetCertificate(t *testing.T) {
 
 func TestListCertificateSummaries(t *testing.T) {
 	cases := []struct {
-		name    string
-		client  func(t *testing.T) MockACMAPI
-		wantErr bool
-		expect  []types.CertificateSummary
+		name      string
+		acmClient func(t *testing.T) MockACMAPI
+		wantErr   bool
+		expect    []types.CertificateSummary
 	}{
 		{
 			name: "normal",
-			client: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI([]MockParams{
+			acmClient: func(t *testing.T) MockACMAPI {
+				return GenerateMockACMAPI([]MockACMParams{
 					{
 						Arn:        "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-1",
 						DomainName: "test1.example.com",
@@ -110,7 +110,7 @@ func TestListCertificateSummaries(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			c, err := ListCertificateSummaries(tt.client(t))
+			c, err := ListCertificateSummaries(tt.acmClient(t))
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -123,15 +123,15 @@ func TestListCertificateSummaries(t *testing.T) {
 
 func TestListCertificates(t *testing.T) {
 	cases := []struct {
-		name    string
-		client  func(t *testing.T) MockACMAPI
-		wantErr bool
-		expect  []Certificate
+		name      string
+		acmClient func(t *testing.T) MockACMAPI
+		wantErr   bool
+		expect    []Certificate
 	}{
 		{
 			name: "normal",
-			client: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI([]MockParams{
+			acmClient: func(t *testing.T) MockACMAPI {
+				return GenerateMockACMAPI([]MockACMParams{
 					{
 						Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-1",
 						DomainName:      "test1.example.com",
@@ -181,7 +181,7 @@ func TestListCertificates(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			c, err := ListCertificates(tt.client(t))
+			c, err := ListCertificates(tt.acmClient(t))
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -193,23 +193,33 @@ func TestListCertificates(t *testing.T) {
 }
 
 func TestDeleteCertificate(t *testing.T) {
-	params := []MockParams{
+	ap := []MockACMParams{
 		{
 			Arn: "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
 		},
 	}
 
+	rp := []MockRoute53Params{
+		{
+			HostedDomainName: "example.com",
+		},
+	}
+
 	cases := []struct {
-		name    string
-		client  func(t *testing.T) MockACMAPI
-		arn     string
-		wantErr bool
-		expect  *acm.DeleteCertificateOutput
+		name          string
+		acmClient     func(t *testing.T) MockACMAPI
+		route53Client func(t *testing.T) MockRoute53API
+		arn           string
+		wantErr       bool
+		expect        *acm.DeleteCertificateOutput
 	}{
 		{
 			name: "normal",
-			client: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI(params)
+			acmClient: func(t *testing.T) MockACMAPI {
+				return GenerateMockACMAPI(ap)
+			},
+			route53Client: func(t *testing.T) MockRoute53API {
+				return GenerateMockRoute53API(rp)
 			},
 			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
 			wantErr: false,
@@ -217,8 +227,11 @@ func TestDeleteCertificate(t *testing.T) {
 		},
 		{
 			name: "notExists",
-			client: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI(params)
+			acmClient: func(t *testing.T) MockACMAPI {
+				return GenerateMockACMAPI(ap)
+			},
+			route53Client: func(t *testing.T) MockRoute53API {
+				return GenerateMockRoute53API(rp)
 			},
 			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/not-exists-arn",
 			wantErr: true,
@@ -228,7 +241,7 @@ func TestDeleteCertificate(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			err := DeleteCertificate(tt.client(t), tt.arn)
+			err := DeleteCertificate(tt.acmClient(t), tt.route53Client(t), tt.arn)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

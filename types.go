@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/service/acm"
-	"github.com/aws/aws-sdk-go-v2/service/acm/types"
 	"github.com/aws/aws-sdk-go-v2/service/route53"
 )
 
@@ -52,26 +51,25 @@ type Route53ChangeResourceRecordSetsAPI interface {
 	ChangeResourceRecordSets(ctx context.Context, params *route53.ChangeResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ChangeResourceRecordSetsOutput, error)
 }
 
-// Certificate is a structure that represents a Certificate.
-type Certificate struct {
-	Arn           string
-	Region        string
-	DomainName    string
-	Type          types.CertificateType
-	Status        types.CertificateStatus
-	FailureReason types.FailureReason
+// RecordSet is a structure that reopresents a record set for Route 53.
+type RecordSet struct {
+	HostedDomainName string
+	Name             string
+	Value            string
+	Type             string
 }
 
-// ValidationMethod is a type that represents the method when requesting a certificate.
-type ValidationMethod types.ValidationMethod
-
-const (
-	// ValidationMethodDNS is a construct valur for validating certificate with DNS.
-	ValidationMethodDNS ValidationMethod = "DNS"
-
-	// ValidationMethodEmail is a construct valur for validating certificate with EMAIL.
-	ValidationMethodEmail ValidationMethod = "EMAIL"
-)
+// Certificate is a structure that represents a Certificate.
+type Certificate struct {
+	Arn                 string
+	Region              string
+	DomainName          string
+	Type                string
+	Status              string
+	FailureReason       string
+	ValidationMethod    string
+	ValidationRecordSet RecordSet
+}
 
 // IssueCertificateResult is a structure that represents a reault of IssueCertificate.
 type IssueCertificateResult struct {
