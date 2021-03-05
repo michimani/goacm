@@ -2,6 +2,7 @@ package goacm
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -26,8 +27,8 @@ func GenerateMockListHostedZonesAPI(mockParams []MockRoute53Params) MockListHost
 
 		for _, p := range mockParams {
 			out.HostedZones = append(out.HostedZones, types.HostedZone{
-				Id:   aws.String(strings.Replace(p.HostedDomainName, ".", "-", -1)),
-				Name: aws.String(p.HostedDomainName + "."),
+				Id:   aws.String(strings.Replace(p.RecordSet.HostedDomainName, ".", "-", -1)),
+				Name: aws.String(p.RecordSet.HostedDomainName + "."),
 			})
 		}
 
@@ -39,6 +40,58 @@ func GenerateMockListHostedZonesAPI(mockParams []MockRoute53Params) MockListHost
 func GenerateMockChangeResourceRecordSetsAPI(mockParams []MockRoute53Params) MockChangeResourceRecordSetsAPI {
 	return MockChangeResourceRecordSetsAPI(func(ctx context.Context, params *route53.ChangeResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ChangeResourceRecordSetsOutput, error) {
 		out := route53.ChangeResourceRecordSetsOutput{}
+
+		available := map[string]*types.ChangeBatch{}
+		for _, p := range mockParams {
+			hostedZoneID := strings.Replace(p.RecordSet.HostedDomainName, ".", "-", -1)
+			available[hostedZoneID] = &types.ChangeBatch{
+				Changes: []types.Change{
+					{
+						Action: p.ChangeAction,
+						ResourceRecordSet: &types.ResourceRecordSet{
+							Name: aws.String(p.RecordSet.Name),
+							Type: types.RRType(p.RecordSet.Type),
+							ResourceRecords: []types.ResourceRecord{
+								{
+									Value: aws.String(p.RecordSet.Value),
+								},
+							},
+						},
+					},
+				},
+			}
+		}
+
+		cb := available[*params.HostedZoneId]
+		if cb == nil {
+			return nil, fmt.Errorf("hosted zone id not exists hostedzoneid: %s", *params.HostedZoneId)
+		}
+
+		if cb.Changes[0].Action != params.ChangeBatch.Changes[0].Action {
+			return nil, fmt.Errorf("change action not matches: expected %v but %v", cb.Changes[0].Action, params.ChangeBatch.Changes[0].Action)
+		}
+
+		if *cb.Changes[0].ResourceRecordSet.Name != *params.ChangeBatch.Changes[0].ResourceRecordSet.Name {
+			return nil, fmt.Errorf("record set name not mathces: expected %v but %v",
+				*cb.Changes[0].ResourceRecordSet.Name,
+				*params.ChangeBatch.Changes[0].ResourceRecordSet.Name)
+		}
+
+		if cb.Changes[0].ResourceRecordSet.Type != params.ChangeBatch.Changes[0].ResourceRecordSet.Type {
+			return nil, fmt.Errorf("record set type not mathces: expected %v but %v",
+				cb.Changes[0].ResourceRecordSet.Type,
+				params.ChangeBatch.Changes[0].ResourceRecordSet.Type)
+		}
+
+		if *cb.Changes[0].ResourceRecordSet.ResourceRecords[0].Value != *params.ChangeBatch.Changes[0].ResourceRecordSet.ResourceRecords[0].Value {
+			return nil, fmt.Errorf("record set resource record value not mathces: expected %v but %v",
+				*cb.Changes[0].ResourceRecordSet.ResourceRecords[0].Value,
+				*params.ChangeBatch.Changes[0].ResourceRecordSet.ResourceRecords[0].Value)
+		}
+
+		// if cb != params.ChangeBatch {
+		// 	return nil, fmt.Errorf("record set not matches: expected %v but %v", params.ChangeBatch, cb)
+		// }
 
 		return &out, nil
 	})

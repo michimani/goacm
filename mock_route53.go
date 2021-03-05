@@ -4,12 +4,13 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/service/route53"
+	"github.com/aws/aws-sdk-go-v2/service/route53/types"
 )
 
 // MockRoute53Params is a structure with the elements needed to generate a mock.
 type MockRoute53Params struct {
-	HostedDomainName string
-	RecordSet        RecordSet
+	RecordSet    RecordSet
+	ChangeAction types.ChangeAction
 }
 
 // MockRoute53API is a struct that represents a Route 53 client.

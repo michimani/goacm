@@ -8,12 +8,7 @@ import (
 
 // MockACMParams is a structure with the elements needed to generate a mock.
 type MockACMParams struct {
-	Arn             string
-	DomainName      string
-	Status          string
-	CertificateType string
-	FailureReason   string
-	Count           int
+	Certificate Certificate
 }
 
 // MockACMAPI is a struct that represents an ACM client.

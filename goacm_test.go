@@ -1,21 +1,25 @@
 package goacm
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 	"github.com/aws/aws-sdk-go-v2/service/acm/types"
+	route53Types "github.com/aws/aws-sdk-go-v2/service/route53/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetCertificate(t *testing.T) {
 	ap := []MockACMParams{
 		{
-			Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
-			DomainName:      "test.example.com",
-			Status:          "ISSUED",
-			CertificateType: "AMAZON_ISSUED",
+			Certificate: Certificate{
+				Arn:        "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
+				DomainName: "test.example.com",
+				Status:     string(types.CertificateStatusIssued),
+				Type:       string(types.CertificateTypeAmazonIssued),
+			},
 		},
 	}
 
@@ -36,8 +40,8 @@ func TestGetCertificate(t *testing.T) {
 			expect: Certificate{
 				Arn:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
 				DomainName:    "test.example.com",
-				Status:        "ISSUED",
-				Type:          "AMAZON_ISSUED",
+				Status:        string(types.CertificateStatusIssued),
+				Type:          string(types.CertificateTypeAmazonIssued),
 				FailureReason: "",
 			},
 		},
@@ -66,6 +70,22 @@ func TestGetCertificate(t *testing.T) {
 }
 
 func TestListCertificateSummaries(t *testing.T) {
+	mp := []MockACMParams{}
+	expect := []types.CertificateSummary{}
+	for i := 0; i < 3; i++ {
+		mp = append(mp, MockACMParams{
+			Certificate: Certificate{
+				Arn:        fmt.Sprintf("arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-%d", (i + 1)),
+				DomainName: fmt.Sprintf("test%d.example.com", (i + 1)),
+			},
+		})
+
+		expect = append(expect, types.CertificateSummary{
+			CertificateArn: aws.String(fmt.Sprintf("arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-%d", (i + 1))),
+			DomainName:     aws.String(fmt.Sprintf("test%d.example.com", (i + 1))),
+		})
+	}
+
 	cases := []struct {
 		name      string
 		acmClient func(t *testing.T) MockACMAPI
@@ -75,36 +95,10 @@ func TestListCertificateSummaries(t *testing.T) {
 		{
 			name: "normal",
 			acmClient: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI([]MockACMParams{
-					{
-						Arn:        "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-1",
-						DomainName: "test1.example.com",
-					},
-					{
-						Arn:        "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-2",
-						DomainName: "test2.example.com",
-					},
-					{
-						Arn:        "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-3",
-						DomainName: "test3.example.com",
-					},
-				})
+				return GenerateMockACMAPI(mp)
 			},
 			wantErr: false,
-			expect: []types.CertificateSummary{
-				{
-					CertificateArn: aws.String("arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-1"),
-					DomainName:     aws.String("test1.example.com"),
-				},
-				{
-					CertificateArn: aws.String("arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-2"),
-					DomainName:     aws.String("test2.example.com"),
-				},
-				{
-					CertificateArn: aws.String("arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-3"),
-					DomainName:     aws.String("test3.example.com"),
-				},
-			},
+			expect:  expect,
 		},
 	}
 
@@ -122,6 +116,40 @@ func TestListCertificateSummaries(t *testing.T) {
 }
 
 func TestListCertificates(t *testing.T) {
+	mp := []MockACMParams{}
+	expect := []Certificate{}
+	for i := 0; i < 3; i++ {
+		mp = append(mp, MockACMParams{
+			Certificate: Certificate{
+				Arn:              fmt.Sprintf("arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-%d", (i + 1)),
+				DomainName:       fmt.Sprintf("test%d.example.com", (i + 1)),
+				Status:           string(types.CertificateStatusIssued),
+				Type:             string(types.CertificateTypeAmazonIssued),
+				ValidationMethod: string(types.ValidationMethodDns),
+				ValidationRecordSet: RecordSet{
+					HostedDomainName: "example.com",
+					Name:             fmt.Sprintf("_validation.%d.name.test.example.com", (i + 1)),
+					Value:            fmt.Sprintf("_validation.%d.value.test.example.com", (i + 1)),
+					Type:             string(route53Types.RRTypeCname),
+				},
+			},
+		})
+
+		expect = append(expect, Certificate{
+			Arn:              fmt.Sprintf("arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-%d", (i + 1)),
+			DomainName:       fmt.Sprintf("test%d.example.com", (i + 1)),
+			Status:           string(types.CertificateStatusIssued),
+			Type:             string(types.CertificateTypeAmazonIssued),
+			ValidationMethod: string(types.ValidationMethodDns),
+			ValidationRecordSet: RecordSet{
+				HostedDomainName: "example.com",
+				Name:             fmt.Sprintf("_validation.%d.name.test.example.com", (i + 1)),
+				Value:            fmt.Sprintf("_validation.%d.value.test.example.com", (i + 1)),
+				Type:             string(route53Types.RRTypeCname),
+			},
+		})
+	}
+
 	cases := []struct {
 		name      string
 		acmClient func(t *testing.T) MockACMAPI
@@ -131,51 +159,10 @@ func TestListCertificates(t *testing.T) {
 		{
 			name: "normal",
 			acmClient: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI([]MockACMParams{
-					{
-						Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-1",
-						DomainName:      "test1.example.com",
-						Status:          "ISSUED",
-						CertificateType: "AMAZON_ISSUED",
-					},
-					{
-						Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-2",
-						DomainName:      "test2.example.com",
-						Status:          "ISSUED",
-						CertificateType: "AMAZON_ISSUED",
-					},
-					{
-						Arn:             "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-3",
-						DomainName:      "test3.example.com",
-						Status:          "ISSUED",
-						CertificateType: "AMAZON_ISSUED",
-					},
-				})
+				return GenerateMockACMAPI(mp)
 			},
 			wantErr: false,
-			expect: []Certificate{
-				{
-					Arn:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-1",
-					DomainName:    "test1.example.com",
-					Status:        "ISSUED",
-					Type:          "AMAZON_ISSUED",
-					FailureReason: "",
-				},
-				{
-					Arn:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-2",
-					DomainName:    "test2.example.com",
-					Status:        "ISSUED",
-					Type:          "AMAZON_ISSUED",
-					FailureReason: "",
-				},
-				{
-					Arn:           "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn-3",
-					DomainName:    "test3.example.com",
-					Status:        "ISSUED",
-					Type:          "AMAZON_ISSUED",
-					FailureReason: "",
-				},
-			},
+			expect:  expect,
 		},
 	}
 
@@ -195,13 +182,29 @@ func TestListCertificates(t *testing.T) {
 func TestDeleteCertificate(t *testing.T) {
 	ap := []MockACMParams{
 		{
-			Arn: "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
+			Certificate: Certificate{
+				Arn:              "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
+				Type:             string(types.CertificateTypeAmazonIssued),
+				ValidationMethod: string(types.ValidationMethodDns),
+				ValidationRecordSet: RecordSet{
+					HostedDomainName: "example.com",
+					Name:             "_validation.name.test.example.com",
+					Value:            "_validation.value.test.example.com",
+					Type:             string(route53Types.RRTypeCname),
+				},
+			},
 		},
 	}
 
 	rp := []MockRoute53Params{
 		{
-			HostedDomainName: "example.com",
+			RecordSet: RecordSet{
+				HostedDomainName: "example.com",
+				Name:             "_validation.name.test.example.com",
+				Value:            "_validation.value.test.example.com",
+				Type:             string(route53Types.RRTypeCname),
+			},
+			ChangeAction: route53Types.ChangeActionDelete,
 		},
 	}
 
@@ -221,7 +224,7 @@ func TestDeleteCertificate(t *testing.T) {
 			route53Client: func(t *testing.T) MockRoute53API {
 				return GenerateMockRoute53API(rp)
 			},
-			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
+			arn:     ap[0].Certificate.Arn,
 			wantErr: false,
 			expect:  &acm.DeleteCertificateOutput{},
 		},

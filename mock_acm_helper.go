@@ -3,6 +3,7 @@ package goacm
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
@@ -28,23 +29,38 @@ func GenerateMockACMDescribeCertificateAPI(mockParams []MockACMParams) MockACMDe
 
 		var availableCertificates map[string]*acm.DescribeCertificateOutput = map[string]*acm.DescribeCertificateOutput{}
 		for _, mp := range mockParams {
-			if mp.Arn == "" {
+			if mp.Certificate.Arn == "" {
 				continue
 			}
-			availableCertificates[mp.Arn] = &acm.DescribeCertificateOutput{
+
+			do := types.DomainValidation{
+				ValidationMethod: types.ValidationMethod(mp.Certificate.ValidationMethod),
+			}
+			if mp.Certificate.ValidationMethod == string(types.ValidationMethodDns) {
+				do.DomainName = aws.String(mp.Certificate.DomainName)
+				do.ValidationDomain = aws.String(mp.Certificate.ValidationRecordSet.HostedDomainName)
+				do.ResourceRecord = &types.ResourceRecord{
+					Name:  aws.String(mp.Certificate.ValidationRecordSet.Name),
+					Value: aws.String(mp.Certificate.ValidationRecordSet.Value),
+					Type:  types.RecordType(mp.Certificate.ValidationRecordSet.Type),
+				}
+			}
+
+			availableCertificates[mp.Certificate.Arn] = &acm.DescribeCertificateOutput{
 				Certificate: &types.CertificateDetail{
-					CertificateArn: aws.String(mp.Arn),
-					DomainName:     aws.String(mp.DomainName),
-					Status:         types.CertificateStatus(mp.Status),
-					Type:           types.CertificateType(mp.CertificateType),
-					FailureReason:  types.FailureReason(mp.FailureReason),
+					CertificateArn:          aws.String(mp.Certificate.Arn),
+					DomainName:              aws.String(mp.Certificate.DomainName),
+					Status:                  types.CertificateStatus(mp.Certificate.Status),
+					Type:                    types.CertificateType(mp.Certificate.Type),
+					FailureReason:           types.FailureReason(mp.Certificate.FailureReason),
+					DomainValidationOptions: []types.DomainValidation{do},
 				},
 			}
 		}
 
 		dco := availableCertificates[*params.CertificateArn]
 		if dco == nil {
-			return nil, errors.New("not found")
+			return nil, fmt.Errorf("certificate arn not found arn: %s", *params.CertificateArn)
 		}
 
 		return dco, nil
@@ -58,8 +74,8 @@ func GenerateMockACMListCertificatesAPI(mockParams []MockACMParams) MockACMListC
 
 		for _, mp := range mockParams {
 			csList = append(csList, types.CertificateSummary{
-				CertificateArn: aws.String(mp.Arn),
-				DomainName:     aws.String(mp.DomainName),
+				CertificateArn: aws.String(mp.Certificate.Arn),
+				DomainName:     aws.String(mp.Certificate.DomainName),
 			})
 		}
 
@@ -75,11 +91,11 @@ func GenerateMockACMDeleteCertificateAPI(mockParams []MockACMParams) MockACMDele
 		var availableCertificates map[string]bool = map[string]bool{}
 
 		for _, mp := range mockParams {
-			availableCertificates[mp.Arn] = true
+			availableCertificates[mp.Certificate.Arn] = true
 		}
 
 		if _, ok := availableCertificates[*params.CertificateArn]; !ok {
-			return nil, errors.New("not exists")
+			return nil, fmt.Errorf("certificate arn not found arn: %s", *params.CertificateArn)
 		}
 
 		return &acm.DeleteCertificateOutput{}, nil
