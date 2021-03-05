@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 )
 
-// MockParams is a structure with the elements needed to generate a mock.
+// MockACMParams is a structure with the elements needed to generate a mock.
 type MockACMParams struct {
 	Arn             string
 	DomainName      string
