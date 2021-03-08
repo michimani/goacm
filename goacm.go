@@ -277,6 +277,7 @@ func DeleteRoute53RecordSet(aAPI ACMAPI, rAPI Route53API, rs RecordSet) error {
 					ResourceRecordSet: &route53Types.ResourceRecordSet{
 						Name: aws.String(rs.Name),
 						Type: route53Types.RRType(rs.Type),
+						TTL:  aws.Int64(300),
 						ResourceRecords: []route53Types.ResourceRecord{
 							{
 								Value: aws.String(rs.Value),
