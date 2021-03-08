@@ -14,6 +14,7 @@ import (
 func GenerateMockRoute53API(mockParams []MockRoute53Params) MockRoute53API {
 	return MockRoute53API{
 		ListHostedZonesAPI:          GenerateMockListHostedZonesAPI(mockParams),
+		ListResourceRecordSetsAPI:   GenerateMockListResourceRecordSetsAPI(mockParams),
 		ChangeResourceRecordSetsAPI: GenerateMockChangeResourceRecordSetsAPI(mockParams),
 	}
 }
@@ -32,6 +33,35 @@ func GenerateMockListHostedZonesAPI(mockParams []MockRoute53Params) MockListHost
 			})
 		}
 
+		return &out, nil
+	})
+}
+
+// GenerateMockListResourceRecordSetsAPI returns MockListResourceRecordSetsAPI.
+func GenerateMockListResourceRecordSetsAPI(mockParams []MockRoute53Params) MockListResourceRecordSetsAPI {
+	return MockListResourceRecordSetsAPI(func(ctx context.Context, params *route53.ListResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ListResourceRecordSetsOutput, error) {
+		out := route53.ListResourceRecordSetsOutput{}
+
+		available := map[string]*types.ResourceRecordSet{}
+		for _, p := range mockParams {
+			available[p.RecordSet.Name] = &types.ResourceRecordSet{
+				Name: aws.String(p.RecordSet.Name),
+				TTL:  aws.Int64(p.RecordSet.TTL),
+				Type: types.RRTypeCname,
+				ResourceRecords: []types.ResourceRecord{
+					{
+						Value: aws.String(p.RecordSet.Value),
+					},
+				},
+			}
+		}
+
+		rrs := available[aws.ToString(params.StartRecordName)]
+		if rrs == nil {
+			return nil, fmt.Errorf("resource record sets not exists name: %s", *params.StartRecordName)
+		}
+
+		out.ResourceRecordSets = append(out.ResourceRecordSets, *rrs)
 		return &out, nil
 	})
 }
@@ -88,10 +118,6 @@ func GenerateMockChangeResourceRecordSetsAPI(mockParams []MockRoute53Params) Moc
 				*cb.Changes[0].ResourceRecordSet.ResourceRecords[0].Value,
 				*params.ChangeBatch.Changes[0].ResourceRecordSet.ResourceRecords[0].Value)
 		}
-
-		// if cb != params.ChangeBatch {
-		// 	return nil, fmt.Errorf("record set not matches: expected %v but %v", params.ChangeBatch, cb)
-		// }
 
 		return &out, nil
 	})

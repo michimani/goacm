@@ -16,11 +16,15 @@ type MockRoute53Params struct {
 // MockRoute53API is a struct that represents a Route 53 client.
 type MockRoute53API struct {
 	ListHostedZonesAPI          MockListHostedZonesAPI
+	ListResourceRecordSetsAPI   MockListResourceRecordSetsAPI
 	ChangeResourceRecordSetsAPI MockChangeResourceRecordSetsAPI
 }
 
 // MockListHostedZonesAPI is a type that represents a function that mock Route 53's MockListHostedZones.
 type MockListHostedZonesAPI func(ctx context.Context, params *route53.ListHostedZonesInput, optFns ...func(*route53.Options)) (*route53.ListHostedZonesOutput, error)
+
+// MockListResourceRecordSetsAPI is a type that represents a function that mock Route 53's MockListResourceRecordSets.
+type MockListResourceRecordSetsAPI func(ctx context.Context, params *route53.ListResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ListResourceRecordSetsOutput, error)
 
 // MockChangeResourceRecordSetsAPI is a type that represents a function that mock Route 53's MockChangeResourceRecordSets.
 type MockChangeResourceRecordSetsAPI func(ctx context.Context, params *route53.ChangeResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ChangeResourceRecordSetsOutput, error)
@@ -28,6 +32,11 @@ type MockChangeResourceRecordSetsAPI func(ctx context.Context, params *route53.C
 // ListHostedZones returns a function that mock original of Route 53 ListHostedZones.
 func (m MockRoute53API) ListHostedZones(ctx context.Context, params *route53.ListHostedZonesInput, optFns ...func(*route53.Options)) (*route53.ListHostedZonesOutput, error) {
 	return m.ListHostedZonesAPI(ctx, params, optFns...)
+}
+
+// ListResourceRecordSets returns a function that mock original of Route 53 ListResourceRecordSets.
+func (m MockRoute53API) ListResourceRecordSets(ctx context.Context, params *route53.ListResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ListResourceRecordSetsOutput, error) {
+	return m.ListResourceRecordSetsAPI(ctx, params, optFns...)
 }
 
 // ChangeResourceRecordSets returns a function that mock original of Route 53 ChangeResourceRecordSets.

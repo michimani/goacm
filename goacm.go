@@ -268,6 +268,25 @@ func DeleteRoute53RecordSet(aAPI ACMAPI, rAPI Route53API, rs RecordSet) error {
 		return errors.New("Cannot get hosted zone ID")
 	}
 
+	lrrsIn := route53.ListResourceRecordSetsInput{
+		HostedZoneId:    aws.String(hzID),
+		StartRecordName: aws.String(rs.Name),
+		MaxItems:        aws.Int32(1),
+	}
+	r, err := rAPI.ListResourceRecordSets(context.TODO(), &lrrsIn)
+	if err != nil {
+		return err
+	}
+
+	if len(r.ResourceRecordSets) != 1 {
+		return fmt.Errorf("Target RecordeSet does not exists: %s", rs.Name)
+	}
+
+	rrs := r.ResourceRecordSets[0]
+	if aws.ToString(rrs.Name) != rs.Name {
+		return fmt.Errorf("Target RecordeSet does not exists: %s", rs.Name)
+	}
+
 	crsIn := route53.ChangeResourceRecordSetsInput{
 		HostedZoneId: aws.String(hzID),
 		ChangeBatch: &route53Types.ChangeBatch{
@@ -277,7 +296,7 @@ func DeleteRoute53RecordSet(aAPI ACMAPI, rAPI Route53API, rs RecordSet) error {
 					ResourceRecordSet: &route53Types.ResourceRecordSet{
 						Name: aws.String(rs.Name),
 						Type: route53Types.RRType(rs.Type),
-						TTL:  aws.Int64(300),
+						TTL:  rrs.TTL,
 						ResourceRecords: []route53Types.ResourceRecord{
 							{
 								Value: aws.String(rs.Value),

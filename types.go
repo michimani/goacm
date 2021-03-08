@@ -18,6 +18,7 @@ type ACMAPI interface {
 // Route53API is an interface that defines Route53 API.
 type Route53API interface {
 	Route53ListHostedZonesAPI
+	Route53ListResourceRecordSetsAPI
 	Route53ChangeResourceRecordSetsAPI
 }
 
@@ -46,6 +47,11 @@ type Route53ListHostedZonesAPI interface {
 	ListHostedZones(ctx context.Context, params *route53.ListHostedZonesInput, optFns ...func(*route53.Options)) (*route53.ListHostedZonesOutput, error)
 }
 
+// Route53ListResourceRecordSetsAPI is an interface that defines the set of Route 53 API operations required by the ListResourceRecordSets function.
+type Route53ListResourceRecordSetsAPI interface {
+	ListResourceRecordSets(ctx context.Context, params *route53.ListResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ListResourceRecordSetsOutput, error)
+}
+
 // Route53ChangeResourceRecordSetsAPI is an interface that defines the set of Route 53 API operations required by the ChangeResourceRecordSets function.
 type Route53ChangeResourceRecordSetsAPI interface {
 	ChangeResourceRecordSets(ctx context.Context, params *route53.ChangeResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ChangeResourceRecordSetsOutput, error)
@@ -57,6 +63,7 @@ type RecordSet struct {
 	Name             string
 	Value            string
 	Type             string
+	TTL              int64
 }
 
 // Certificate is a structure that represents a Certificate.
