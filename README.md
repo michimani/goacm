@@ -15,62 +15,67 @@ goacm is a simple package for using AWS Certificate Manager from applications im
 
 # Example
 
+## Create goacm client
+
 ```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/michimani/goacm"
-)
-
-func main() {
-	gacm, err := goacm.NewGoACM("ap-northeast-1")
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	// List certificates and print each ARN.
-	fmt.Println("List certificates and print each ARN.")
-	listCertificate(gacm)
-
-	// Issue an SSL certificate.
-	fmt.Println("Issue an SSL certificate.")
-	issueCertificate(gacm)
+g, err := goacm.NewGoACM("ap-northeast-1")
+if err != nil {
+	fmt.Println(err.Error())
+	return
 }
+```
 
-func listCertificate(g *goacm.GoACM) {
-	if certificates, err := goacm.ListCertificates(g.ACMClient); err != nil {
-		fmt.Println(err.Error())
-	} else {
-		for _, c := range certificates {
-			fmt.Println(c.Arn)
-		}
-	}
-}
+## List Certificats
 
-func issueCertificate(g *goacm.GoACM) {
-	targetDomain := "goacm.example.com"
-	hostedDomain := "example.com"
-	var validationMethod goacm.ValidationMethod = "DNS"
-	if res, err := goacm.IssueCertificate(g.ACMClient, g.Route53Client, validationMethod, targetDomain, hostedDomain); err != nil {
-		fmt.Println(err.Error())
-	} else {
-		fmt.Printf("%v", res)
+```go
+if certificates, err := goacm.ListCertificates(g.ACMClient); err != nil {
+	fmt.Println(err.Error())
+} else {
+	fmt.Println("DomainName\tStatus\tARN")
+	for _, c := range certificates {
+		fmt.Printf("%s\t%s\t%s\n", c.DomainName, c.Status, c.Arn)
 	}
 }
 ```
 
-```bash
-$ go run main.go
+## Get a Certificate
 
-List certificates and print each ARN.
-arn:aws:acm:ap-northeast-1:000000000000:certificate/00000000-xxxx-xxxx-0000-xxxxxxxxxxxx
-arn:aws:acm:ap-northeast-1:000000000000:certificate/00000001-xxxx-xxxx-0000-xxxxxxxxxxxx
-arn:aws:acm:ap-northeast-1:000000000000:certificate/00000002-xxxx-xxxx-0000-xxxxxxxxxxxx
-arn:aws:acm:ap-northeast-1:000000000000:certificate/00000003-xxxx-xxxx-0000-xxxxxxxxxxxx
-arn:aws:acm:ap-northeast-1:000000000000:certificate/00000004-xxxx-xxxx-0000-xxxxxxxxxxxx
-Issue an SSL certificate.
-{arn:aws:acm:ap-northeast-1:000000000000:certificate/00000005-xxxx-xxxx-0000-xxxxxxxxxxxx goacm.example.com example.com /hostedzone/Z3XXXXXXXXXXXX DNS _32xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.goacm.example.com. _80xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.xxxxxxxxxx.acm-validations.aws.}
+```go
+arn := "arn:aws:acm:ap-northeast-1:000000000000:certificate/xxxxxxxx-1111-1111-1111-11111111xxxx"
+c, err := goacm.GetCertificate(g.ACMClient, arn)
+if err != nil {
+	fmt.Println(err.Error())
+	return
+}
+
+fmt.Println("DomainName\tStatus\tARN")
+fmt.Printf("%s\t%s\t%s\n", c.DomainName, c.Status, c.Arn)
+```
+
+## Issue a SSL Certificate
+
+Request an ACM Certificate and create a RecordSet in Route 53 to validate the domain.
+
+```go
+method := "DNS"
+targetDomain := "sample.exapmle.com"
+hostedDomain := "example.com"
+res, err := goacm.IssueCertificate(g.ACMClient, g.Route53Client, method, targetDomain, hostedDomain)
+if err != nil {
+	fmt.Println(err.Error())
+	return
+}
+
+fmt.Printf("ARN: %v", res.CertificateArn)
+```
+
+## Delete a Certificate
+
+Delete the Route 53 RecordSet that was created for ACM Certificate and Domain validation.
+
+```go
+arn := "arn:aws:acm:ap-northeast-1:000000000000:certificate/xxxxxxxx-1111-1111-1111-11111111xxxx"
+if err := goacm.DeleteCertificate(g.ACMClient, g.Route53Client, arn); err != nil {
+	fmt.Println(err.Error())
+}
 ```
