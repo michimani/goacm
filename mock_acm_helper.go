@@ -33,13 +33,13 @@ func GenerateMockACMDescribeCertificateAPI(mockParams []MockACMParams) MockACMDe
 				continue
 			}
 
-			do := types.DomainValidation{
+			dv := types.DomainValidation{
 				ValidationMethod: types.ValidationMethod(mp.Certificate.ValidationMethod),
 			}
 			if mp.Certificate.ValidationMethod == string(types.ValidationMethodDns) {
-				do.DomainName = aws.String(mp.Certificate.DomainName)
-				do.ValidationDomain = aws.String(mp.Certificate.ValidationRecordSet.HostedDomainName)
-				do.ResourceRecord = &types.ResourceRecord{
+				dv.DomainName = aws.String(mp.Certificate.DomainName)
+				dv.ValidationDomain = aws.String(mp.Certificate.ValidationRecordSet.HostedDomainName)
+				dv.ResourceRecord = &types.ResourceRecord{
 					Name:  aws.String(mp.Certificate.ValidationRecordSet.Name),
 					Value: aws.String(mp.Certificate.ValidationRecordSet.Value),
 					Type:  types.RecordType(mp.Certificate.ValidationRecordSet.Type),
@@ -53,7 +53,7 @@ func GenerateMockACMDescribeCertificateAPI(mockParams []MockACMParams) MockACMDe
 					Status:                  types.CertificateStatus(mp.Certificate.Status),
 					Type:                    types.CertificateType(mp.Certificate.Type),
 					FailureReason:           types.FailureReason(mp.Certificate.FailureReason),
-					DomainValidationOptions: []types.DomainValidation{do},
+					DomainValidationOptions: []types.DomainValidation{dv},
 				},
 			}
 		}
