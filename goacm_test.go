@@ -1,6 +1,7 @@
 package goacm
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -58,7 +59,8 @@ func TestGetCertificate(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			c, err := GetCertificate(tt.acmClient(t), tt.arn)
+			ctx := context.TODO()
+			c, err := GetCertificate(ctx, tt.acmClient(t), tt.arn)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -104,7 +106,8 @@ func TestListCertificateSummaries(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			c, err := ListCertificateSummaries(tt.acmClient(t))
+			ctx := context.TODO()
+			c, err := ListCertificateSummaries(ctx, tt.acmClient(t))
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -168,7 +171,8 @@ func TestListCertificates(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			c, err := ListCertificates(tt.acmClient(t))
+			ctx := context.TODO()
+			c, err := ListCertificates(ctx, tt.acmClient(t))
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -244,7 +248,8 @@ func TestDeleteCertificate(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			err := DeleteCertificate(tt.acmClient(t), tt.route53Client(t), tt.arn)
+			ctx := context.TODO()
+			err := DeleteCertificate(ctx, tt.acmClient(t), tt.route53Client(t), tt.arn)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

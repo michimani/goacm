@@ -18,7 +18,8 @@ goacm is a simple package for using AWS Certificate Manager from applications im
 ## Create goacm client
 
 ```go
-g, err := goacm.NewGoACM("ap-northeast-1")
+ctx := context.TODO()
+g, err := goacm.NewGoACM(ctx, "ap-northeast-1")
 if err != nil {
 	fmt.Println(err.Error())
 	return
@@ -28,7 +29,8 @@ if err != nil {
 ## List Certificats
 
 ```go
-if certificates, err := goacm.ListCertificates(g.ACMClient); err != nil {
+ctx := context.TODO()
+if certificates, err := goacm.ListCertificates(ctx, g.ACMClient); err != nil {
 	fmt.Println(err.Error())
 } else {
 	fmt.Println("DomainName\tStatus\tARN")
@@ -42,7 +44,8 @@ if certificates, err := goacm.ListCertificates(g.ACMClient); err != nil {
 
 ```go
 arn := "arn:aws:acm:ap-northeast-1:000000000000:certificate/xxxxxxxx-1111-1111-1111-11111111xxxx"
-c, err := goacm.GetCertificate(g.ACMClient, arn)
+ctx := context.TODO()
+c, err := goacm.GetCertificate(ctx, g.ACMClient, arn)
 if err != nil {
 	fmt.Println(err.Error())
 	return
@@ -60,7 +63,8 @@ Request an ACM Certificate and create a RecordSet in Route 53 to validate the do
 method := "DNS"
 targetDomain := "sample.exapmle.com"
 hostedDomain := "example.com"
-res, err := goacm.IssueCertificate(g.ACMClient, g.Route53Client, method, targetDomain, hostedDomain)
+ctx := context.TODO()
+res, err := goacm.IssueCertificate(ctx, g.ACMClient, g.Route53Client, method, targetDomain, hostedDomain)
 if err != nil {
 	fmt.Println(err.Error())
 	return
@@ -75,7 +79,8 @@ Delete the Route 53 RecordSet that was created for ACM Certificate and Domain va
 
 ```go
 arn := "arn:aws:acm:ap-northeast-1:000000000000:certificate/xxxxxxxx-1111-1111-1111-11111111xxxx"
-if err := goacm.DeleteCertificate(g.ACMClient, g.Route53Client, arn); err != nil {
+ctx := context.TODO()
+if err := goacm.DeleteCertificate(ctx, g.ACMClient, g.Route53Client, arn); err != nil {
 	fmt.Println(err.Error())
 }
 ```

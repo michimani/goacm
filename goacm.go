@@ -23,8 +23,8 @@ type GoACM struct {
 }
 
 // NewGoACM returns a new GoACM object.
-func NewGoACM(region string) (*GoACM, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+func NewGoACM(ctx context.Context, region string) (*GoACM, error) {
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return nil, err
 	}
@@ -37,9 +37,9 @@ func NewGoACM(region string) (*GoACM, error) {
 }
 
 // ListCertificateSummaries returns a list of certificate summary.
-func ListCertificateSummaries(api ACMListCertificatesAPI) ([]acmTypes.CertificateSummary, error) {
+func ListCertificateSummaries(ctx context.Context, api ACMListCertificatesAPI) ([]acmTypes.CertificateSummary, error) {
 	in := acm.ListCertificatesInput{}
-	out, err := api.ListCertificates(context.TODO(), &in)
+	out, err := api.ListCertificates(ctx, &in)
 	if err != nil {
 		return nil, err
 	}
@@ -48,11 +48,11 @@ func ListCertificateSummaries(api ACMListCertificatesAPI) ([]acmTypes.Certificat
 }
 
 // GetCertificate returns the details of the certificate.
-func GetCertificate(api ACMDescribeCertificateAPI, arn string) (Certificate, error) {
+func GetCertificate(ctx context.Context, api ACMDescribeCertificateAPI, arn string) (Certificate, error) {
 	in := acm.DescribeCertificateInput{
 		CertificateArn: aws.String(arn),
 	}
-	out, err := api.DescribeCertificate(context.TODO(), &in)
+	out, err := api.DescribeCertificate(ctx, &in)
 	if err != nil {
 		return Certificate{}, err
 	}
@@ -81,15 +81,15 @@ func GetCertificate(api ACMDescribeCertificateAPI, arn string) (Certificate, err
 }
 
 // ListCertificates returns list of certificate.
-func ListCertificates(api ACMAPI) ([]Certificate, error) {
-	summary, err := ListCertificateSummaries(api)
+func ListCertificates(ctx context.Context, api ACMAPI) ([]Certificate, error) {
+	summary, err := ListCertificateSummaries(ctx, api)
 	if err != nil {
 		return nil, err
 	}
 
 	var cList []Certificate
 	for _, s := range summary {
-		c, err := GetCertificate(api, aws.ToString(s.CertificateArn))
+		c, err := GetCertificate(ctx, api, aws.ToString(s.CertificateArn))
 		if err != nil {
 			fmt.Println(err.Error())
 			continue
@@ -101,15 +101,15 @@ func ListCertificates(api ACMAPI) ([]Certificate, error) {
 }
 
 // DeleteCertificate returns an error if deleting the certificate fails.
-func DeleteCertificate(aAPI ACMAPI, rAPI Route53API, arn string) error {
-	c, err := GetCertificate(aAPI, arn)
+func DeleteCertificate(ctx context.Context, aAPI ACMAPI, rAPI Route53API, arn string) error {
+	c, err := GetCertificate(ctx, aAPI, arn)
 	if err != nil {
 		return err
 	}
 
 	// Delete Route 53 Record that validate domain.
 	if c.ValidationMethod == string(types.ValidationMethodDns) {
-		if err := DeleteRoute53RecordSet(aAPI, rAPI, c.ValidationRecordSet); err != nil {
+		if err := DeleteRoute53RecordSet(ctx, aAPI, rAPI, c.ValidationRecordSet); err != nil {
 			return err
 		}
 	}
@@ -118,7 +118,7 @@ func DeleteCertificate(aAPI ACMAPI, rAPI Route53API, arn string) error {
 		CertificateArn: aws.String(arn),
 	}
 
-	if _, err := aAPI.DeleteCertificate(context.TODO(), &in); err != nil {
+	if _, err := aAPI.DeleteCertificate(ctx, &in); err != nil {
 		return err
 	}
 
@@ -126,7 +126,7 @@ func DeleteCertificate(aAPI ACMAPI, rAPI Route53API, arn string) error {
 }
 
 // IssueCertificate issues an SSL certificate for the specified domain.
-func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method, targetDomain, hostedDomain string) (IssueCertificateResult, error) {
+func IssueCertificate(ctx context.Context, aAPI ACMAPI, rAPI Route53API, method, targetDomain, hostedDomain string) (IssueCertificateResult, error) {
 	var result IssueCertificateResult = IssueCertificateResult{
 		DomainName:       targetDomain,
 		HostedDomainName: hostedDomain,
@@ -144,7 +144,7 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method, targetDomain, hosted
 			},
 		},
 	}
-	r, err := aAPI.RequestCertificate(context.TODO(), &reqIn)
+	r, err := aAPI.RequestCertificate(ctx, &reqIn)
 	if err != nil {
 		return IssueCertificateResult{}, err
 	}
@@ -160,13 +160,13 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method, targetDomain, hosted
 	dcIn := acm.DescribeCertificateInput{
 		CertificateArn: r.CertificateArn,
 	}
-	c, err := aAPI.DescribeCertificate(context.TODO(), &dcIn)
+	c, err := aAPI.DescribeCertificate(ctx, &dcIn)
 	if err != nil {
 		return IssueCertificateResult{}, err
 	}
 	if c.Certificate.DomainValidationOptions == nil {
 		errMsg := "DomainValidationOptions dose not exists"
-		if err := RollbackIssueCertificate(aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
+		if err := RollbackIssueCertificate(ctx, aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
 			errMsg += fmt.Sprintf("; Failed to rollback to issue certificate: %v", err)
 		} else {
 			errMsg += "; rollbacked to issue certificate"
@@ -181,10 +181,10 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method, targetDomain, hosted
 	result.ValidationRecordValue = *vRecordValue
 
 	lhzIn := route53.ListHostedZonesInput{}
-	h, err := rAPI.ListHostedZones(context.TODO(), &lhzIn)
+	h, err := rAPI.ListHostedZones(ctx, &lhzIn)
 	if err != nil {
 		errMsg := err.Error()
-		if err := RollbackIssueCertificate(aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
+		if err := RollbackIssueCertificate(ctx, aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
 			errMsg += fmt.Sprintf("; Failed to rollback to issue certificate: %v", err)
 		} else {
 			errMsg += "; rollbacked to issue certificate"
@@ -200,7 +200,7 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method, targetDomain, hosted
 	}
 	if hzID == "" {
 		errMsg := "Cannot get hosted zone ID"
-		if err := RollbackIssueCertificate(aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
+		if err := RollbackIssueCertificate(ctx, aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
 			errMsg += fmt.Sprintf("; Failed to rollback to issue certificate: %v", err)
 		} else {
 			errMsg += "; rollbacked to issue certificate"
@@ -231,10 +231,10 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method, targetDomain, hosted
 		},
 	}
 
-	_, err = rAPI.ChangeResourceRecordSets(context.TODO(), &crsIn)
+	_, err = rAPI.ChangeResourceRecordSets(ctx, &crsIn)
 	if err != nil {
 		errMsg := err.Error()
-		if err := RollbackIssueCertificate(aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
+		if err := RollbackIssueCertificate(ctx, aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
 			errMsg += fmt.Sprintf("; Failed to rollback to issue certificate: %v", err)
 		} else {
 			errMsg += "; rollbacked to issue certificate"
@@ -246,14 +246,14 @@ func IssueCertificate(aAPI ACMAPI, rAPI Route53API, method, targetDomain, hosted
 }
 
 // RollbackIssueCertificate rollbacks to issue an SSL certificate.
-func RollbackIssueCertificate(aAPI ACMAPI, rAPI Route53API, arn string) error {
-	return DeleteCertificate(aAPI, rAPI, arn)
+func RollbackIssueCertificate(ctx context.Context, aAPI ACMAPI, rAPI Route53API, arn string) error {
+	return DeleteCertificate(ctx, aAPI, rAPI, arn)
 }
 
 // DeleteRoute53RecordSet deletes a Route 53 record set.
-func DeleteRoute53RecordSet(aAPI ACMAPI, rAPI Route53API, rs RecordSet) error {
+func DeleteRoute53RecordSet(ctx context.Context, aAPI ACMAPI, rAPI Route53API, rs RecordSet) error {
 	lhzIn := route53.ListHostedZonesInput{}
-	h, err := rAPI.ListHostedZones(context.TODO(), &lhzIn)
+	h, err := rAPI.ListHostedZones(ctx, &lhzIn)
 	if err != nil {
 		return err
 	}
@@ -273,7 +273,7 @@ func DeleteRoute53RecordSet(aAPI ACMAPI, rAPI Route53API, rs RecordSet) error {
 		StartRecordName: aws.String(rs.Name),
 		MaxItems:        aws.Int32(1),
 	}
-	r, err := rAPI.ListResourceRecordSets(context.TODO(), &lrrsIn)
+	r, err := rAPI.ListResourceRecordSets(ctx, &lrrsIn)
 	if err != nil {
 		return err
 	}
@@ -308,7 +308,7 @@ func DeleteRoute53RecordSet(aAPI ACMAPI, rAPI Route53API, rs RecordSet) error {
 		},
 	}
 
-	_, err = rAPI.ChangeResourceRecordSets(context.TODO(), &crsIn)
+	_, err = rAPI.ChangeResourceRecordSets(ctx, &crsIn)
 
 	if err != nil {
 		return err
