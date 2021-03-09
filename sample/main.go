@@ -1,24 +1,26 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/michimani/goacm"
 )
 
 func main() {
-	gacm, err := goacm.NewGoACM("ap-northeast-1")
+	gacm, err := goacm.NewGoACM(context.TODO(), "ap-northeast-1")
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	listCertificate(gacm)
+	ctx := context.TODO()
+	listCertificate(ctx, gacm)
 }
 
 // List Certificate
-func listCertificate(g *goacm.GoACM) {
-	if certificates, err := goacm.ListCertificates(g.ACMClient); err != nil {
+func listCertificate(ctx context.Context, g *goacm.GoACM) {
+	if certificates, err := goacm.ListCertificates(ctx, g.ACMClient); err != nil {
 		fmt.Println(err.Error())
 	} else {
 		fmt.Println("DomainName\tStatus\tARN")
@@ -29,8 +31,8 @@ func listCertificate(g *goacm.GoACM) {
 }
 
 // Get a Certificate
-func getCertificate(g *goacm.GoACM, arn string) {
-	c, err := goacm.GetCertificate(g.ACMClient, arn)
+func getCertificate(ctx context.Context, g *goacm.GoACM, arn string) {
+	c, err := goacm.GetCertificate(ctx, g.ACMClient, arn)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -41,8 +43,8 @@ func getCertificate(g *goacm.GoACM, arn string) {
 }
 
 // Issue a Certificate
-func issueCertificate(g *goacm.GoACM, targetDomain, hostedDomain, method string) {
-	res, err := goacm.IssueCertificate(g.ACMClient, g.Route53Client, method, targetDomain, hostedDomain)
+func issueCertificate(ctx context.Context, g *goacm.GoACM, targetDomain, hostedDomain, method string) {
+	res, err := goacm.IssueCertificate(ctx, g.ACMClient, g.Route53Client, method, targetDomain, hostedDomain)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -52,8 +54,8 @@ func issueCertificate(g *goacm.GoACM, targetDomain, hostedDomain, method string)
 }
 
 // Delete a Certificate
-func deleteCertificate(g *goacm.GoACM, arn string) {
-	if err := goacm.DeleteCertificate(g.ACMClient, g.Route53Client, arn); err != nil {
+func deleteCertificate(ctx context.Context, g *goacm.GoACM, arn string) {
+	if err := goacm.DeleteCertificate(ctx, g.ACMClient, g.Route53Client, arn); err != nil {
 		fmt.Println(err.Error())
 	}
 }
