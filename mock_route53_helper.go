@@ -10,17 +10,17 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/route53/types"
 )
 
-// GenerateMockRoute53API returns MockRoute53API.
-func GenerateMockRoute53API(mockParams []MockRoute53Params) MockRoute53API {
+// NewMockRoute53API returns MockRoute53API.
+func NewMockRoute53API(mockParams []MockRoute53Params) MockRoute53API {
 	return MockRoute53API{
-		ListHostedZonesAPI:          GenerateMockListHostedZonesAPI(mockParams),
-		ListResourceRecordSetsAPI:   GenerateMockListResourceRecordSetsAPI(mockParams),
-		ChangeResourceRecordSetsAPI: GenerateMockChangeResourceRecordSetsAPI(mockParams),
+		ListHostedZonesAPI:          NewMockListHostedZonesAPI(mockParams),
+		ListResourceRecordSetsAPI:   NewMockListResourceRecordSetsAPI(mockParams),
+		ChangeResourceRecordSetsAPI: NewMockChangeResourceRecordSetsAPI(mockParams),
 	}
 }
 
-// GenerateMockListHostedZonesAPI returns MockListHostedZonesAPI.
-func GenerateMockListHostedZonesAPI(mockParams []MockRoute53Params) MockListHostedZonesAPI {
+// NewMockListHostedZonesAPI returns MockListHostedZonesAPI.
+func NewMockListHostedZonesAPI(mockParams []MockRoute53Params) MockListHostedZonesAPI {
 	return MockListHostedZonesAPI(func(ctx context.Context, params *route53.ListHostedZonesInput, optFns ...func(*route53.Options)) (*route53.ListHostedZonesOutput, error) {
 		out := route53.ListHostedZonesOutput{
 			HostedZones: []types.HostedZone{},
@@ -37,8 +37,8 @@ func GenerateMockListHostedZonesAPI(mockParams []MockRoute53Params) MockListHost
 	})
 }
 
-// GenerateMockListResourceRecordSetsAPI returns MockListResourceRecordSetsAPI.
-func GenerateMockListResourceRecordSetsAPI(mockParams []MockRoute53Params) MockListResourceRecordSetsAPI {
+// NewMockListResourceRecordSetsAPI returns MockListResourceRecordSetsAPI.
+func NewMockListResourceRecordSetsAPI(mockParams []MockRoute53Params) MockListResourceRecordSetsAPI {
 	return MockListResourceRecordSetsAPI(func(ctx context.Context, params *route53.ListResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ListResourceRecordSetsOutput, error) {
 		out := route53.ListResourceRecordSetsOutput{}
 
@@ -66,8 +66,8 @@ func GenerateMockListResourceRecordSetsAPI(mockParams []MockRoute53Params) MockL
 	})
 }
 
-// GenerateMockChangeResourceRecordSetsAPI returns MockChangeResourceRecordSetsAPI.
-func GenerateMockChangeResourceRecordSetsAPI(mockParams []MockRoute53Params) MockChangeResourceRecordSetsAPI {
+// NewMockChangeResourceRecordSetsAPI returns MockChangeResourceRecordSetsAPI.
+func NewMockChangeResourceRecordSetsAPI(mockParams []MockRoute53Params) MockChangeResourceRecordSetsAPI {
 	return MockChangeResourceRecordSetsAPI(func(ctx context.Context, params *route53.ChangeResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ChangeResourceRecordSetsOutput, error) {
 		out := route53.ChangeResourceRecordSetsOutput{}
 

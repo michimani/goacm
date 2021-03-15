@@ -34,7 +34,7 @@ func TestGetCertificate(t *testing.T) {
 		{
 			name: "normal",
 			acmClient: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI(ap)
+				return NewMockACMAPI(ap)
 			},
 			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/this-is-a-sample-arn",
 			wantErr: false,
@@ -49,7 +49,7 @@ func TestGetCertificate(t *testing.T) {
 		{
 			name: "notFound",
 			acmClient: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI(ap)
+				return NewMockACMAPI(ap)
 			},
 			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/not-found-arn",
 			wantErr: true,
@@ -97,7 +97,7 @@ func TestListCertificateSummaries(t *testing.T) {
 		{
 			name: "normal",
 			acmClient: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI(mp)
+				return NewMockACMAPI(mp)
 			},
 			wantErr: false,
 			expect:  expect,
@@ -162,7 +162,7 @@ func TestListCertificates(t *testing.T) {
 		{
 			name: "normal",
 			acmClient: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI(mp)
+				return NewMockACMAPI(mp)
 			},
 			wantErr: false,
 			expect:  expect,
@@ -223,10 +223,10 @@ func TestDeleteCertificate(t *testing.T) {
 		{
 			name: "normal",
 			acmClient: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI(ap)
+				return NewMockACMAPI(ap)
 			},
 			route53Client: func(t *testing.T) MockRoute53API {
-				return GenerateMockRoute53API(rp)
+				return NewMockRoute53API(rp)
 			},
 			arn:     ap[0].Certificate.Arn,
 			wantErr: false,
@@ -235,10 +235,10 @@ func TestDeleteCertificate(t *testing.T) {
 		{
 			name: "notExists",
 			acmClient: func(t *testing.T) MockACMAPI {
-				return GenerateMockACMAPI(ap)
+				return NewMockACMAPI(ap)
 			},
 			route53Client: func(t *testing.T) MockRoute53API {
-				return GenerateMockRoute53API(rp)
+				return NewMockRoute53API(rp)
 			},
 			arn:     "arn:aws:acm:ap-northeast-1:000000000000:certificate/not-exists-arn",
 			wantErr: true,

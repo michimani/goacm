@@ -10,18 +10,18 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/acm/types"
 )
 
-// GenerateMockACMAPI return MockACMAPI.
-func GenerateMockACMAPI(mockParams []MockACMParams) MockACMAPI {
+// NewMockACMAPI return MockACMAPI.
+func NewMockACMAPI(mockParams []MockACMParams) MockACMAPI {
 	return MockACMAPI{
-		DescribeCertificateAPI: GenerateMockACMDescribeCertificateAPI(mockParams),
-		ListCertificatesAPI:    GenerateMockACMListCertificatesAPI(mockParams),
-		DeleteCertificateAPI:   GenerateMockACMDeleteCertificateAPI(mockParams),
-		RequestCertificateAPI:  GenerateMockACMRequestCertificateAPI(mockParams),
+		DescribeCertificateAPI: NewMockACMDescribeCertificateAPI(mockParams),
+		ListCertificatesAPI:    NewMockACMListCertificatesAPI(mockParams),
+		DeleteCertificateAPI:   NewMockACMDeleteCertificateAPI(mockParams),
+		RequestCertificateAPI:  NewMockACMRequestCertificateAPI(mockParams),
 	}
 }
 
-// GenerateMockACMDescribeCertificateAPI returns MockACMDescribeCertificateAPI.
-func GenerateMockACMDescribeCertificateAPI(mockParams []MockACMParams) MockACMDescribeCertificateAPI {
+// NewMockACMDescribeCertificateAPI returns MockACMDescribeCertificateAPI.
+func NewMockACMDescribeCertificateAPI(mockParams []MockACMParams) MockACMDescribeCertificateAPI {
 	return MockACMDescribeCertificateAPI(func(ctx context.Context, params *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
 		if params.CertificateArn == nil {
 			return nil, errors.New("expect Certificate ARN to not be nil")
@@ -67,8 +67,8 @@ func GenerateMockACMDescribeCertificateAPI(mockParams []MockACMParams) MockACMDe
 	})
 }
 
-// GenerateMockACMListCertificatesAPI returns MockACMDescribeCertificateAPI.
-func GenerateMockACMListCertificatesAPI(mockParams []MockACMParams) MockACMListCertificatesAPI {
+// NewMockACMListCertificatesAPI returns MockACMDescribeCertificateAPI.
+func NewMockACMListCertificatesAPI(mockParams []MockACMParams) MockACMListCertificatesAPI {
 	return MockACMListCertificatesAPI(func(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 		var csList []types.CertificateSummary
 
@@ -85,8 +85,8 @@ func GenerateMockACMListCertificatesAPI(mockParams []MockACMParams) MockACMListC
 	})
 }
 
-// GenerateMockACMDeleteCertificateAPI returns MockACMDeleteCertificateAPI
-func GenerateMockACMDeleteCertificateAPI(mockParams []MockACMParams) MockACMDeleteCertificateAPI {
+// NewMockACMDeleteCertificateAPI returns MockACMDeleteCertificateAPI
+func NewMockACMDeleteCertificateAPI(mockParams []MockACMParams) MockACMDeleteCertificateAPI {
 	return MockACMDeleteCertificateAPI(func(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
 		var availableCertificates map[string]bool = map[string]bool{}
 
@@ -102,8 +102,8 @@ func GenerateMockACMDeleteCertificateAPI(mockParams []MockACMParams) MockACMDele
 	})
 }
 
-// GenerateMockACMRequestCertificateAPI returns MockACMRequestCertificateAPI
-func GenerateMockACMRequestCertificateAPI(mockParams []MockACMParams) MockACMRequestCertificateAPI {
+// NewMockACMRequestCertificateAPI returns MockACMRequestCertificateAPI
+func NewMockACMRequestCertificateAPI(mockParams []MockACMParams) MockACMRequestCertificateAPI {
 	return MockACMRequestCertificateAPI(func(ctx context.Context, params *acm.RequestCertificateInput, optFns ...func(*acm.Options)) (*acm.RequestCertificateOutput, error) {
 		return &acm.RequestCertificateOutput{}, nil
 	})
