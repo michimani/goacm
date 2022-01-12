@@ -21,7 +21,7 @@ jobs:
       run: go install
 
     - name: Test code
-      run: go test -v .
+      run: go test .
 
   setup-release:
     name: Setup release
