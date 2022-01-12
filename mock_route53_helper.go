@@ -30,6 +30,9 @@ func NewMockListHostedZonesAPI(mockParams []MockRoute53Params) MockListHostedZon
 			out.HostedZones = append(out.HostedZones, types.HostedZone{
 				Id:   aws.String(strings.Replace(p.RecordSet.HostedDomainName, ".", "-", -1)),
 				Name: aws.String(p.RecordSet.HostedDomainName + "."),
+				Config: &types.HostedZoneConfig{
+					PrivateZone: p.IsPrivateHostedZone,
+				},
 			})
 		}
 
