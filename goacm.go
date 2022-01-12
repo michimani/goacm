@@ -180,8 +180,8 @@ func IssueCertificate(ctx context.Context, aAPI ACMAPI, rAPI Route53API, method,
 	result.ValidationRecordName = *vRecordName
 	result.ValidationRecordValue = *vRecordValue
 
-	lhzIn := route53.ListHostedZonesInput{}
-	h, err := rAPI.ListHostedZones(ctx, &lhzIn)
+	// allowed only public hosted zones
+	hzID, err := getPublicHostedZoneIDByDomainName(ctx, rAPI, hostedDomain)
 	if err != nil {
 		errMsg := err.Error()
 		if err := RollbackIssueCertificate(ctx, aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
@@ -192,14 +192,8 @@ func IssueCertificate(ctx context.Context, aAPI ACMAPI, rAPI Route53API, method,
 		return IssueCertificateResult{}, errors.New(errMsg)
 	}
 
-	hzID := ""
-	for _, hz := range h.HostedZones {
-		if *hz.Name == hostedDomain+"." {
-			hzID = *hz.Id
-		}
-	}
 	if hzID == "" {
-		errMsg := "Cannot get hosted zone ID"
+		errMsg := "Cannot get public hosted zone ID"
 		if err := RollbackIssueCertificate(ctx, aAPI, rAPI, *c.Certificate.CertificateArn); err != nil {
 			errMsg += fmt.Sprintf("; Failed to rollback to issue certificate: %v", err)
 		} else {
@@ -252,17 +246,9 @@ func RollbackIssueCertificate(ctx context.Context, aAPI ACMAPI, rAPI Route53API,
 
 // DeleteRoute53RecordSet deletes a Route 53 record set.
 func DeleteRoute53RecordSet(ctx context.Context, aAPI ACMAPI, rAPI Route53API, rs RecordSet) error {
-	lhzIn := route53.ListHostedZonesInput{}
-	h, err := rAPI.ListHostedZones(ctx, &lhzIn)
+	hzID, err := getPublicHostedZoneIDByDomainName(ctx, rAPI, rs.HostedDomainName)
 	if err != nil {
 		return err
-	}
-
-	hzID := ""
-	for _, hz := range h.HostedZones {
-		if aws.ToString(hz.Name) == rs.HostedDomainName+"." {
-			hzID = aws.ToString(hz.Id)
-		}
 	}
 	if hzID == "" {
 		return errors.New("Cannot get hosted zone ID")
@@ -315,4 +301,24 @@ func DeleteRoute53RecordSet(ctx context.Context, aAPI ACMAPI, rAPI Route53API, r
 	}
 
 	return nil
+}
+
+// Get public hosted zone ID by domain name.
+// domainName is a string without a "." at the end.
+func getPublicHostedZoneIDByDomainName(ctx context.Context, rAPI Route53API, domainName string) (string, error) {
+	dn := domainName + "."
+
+	lhzIn := route53.ListHostedZonesInput{}
+	out, err := rAPI.ListHostedZones(ctx, &lhzIn)
+	if err != nil {
+		return "", err
+	}
+
+	for _, hz := range out.HostedZones {
+		if hz.Config != nil && !hz.Config.PrivateZone && *hz.Name == dn {
+			return aws.ToString(hz.Id), nil
+		}
+	}
+
+	return "", nil
 }

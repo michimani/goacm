@@ -9,8 +9,9 @@ import (
 
 // MockRoute53Params is a structure with the elements needed to generate a mock.
 type MockRoute53Params struct {
-	RecordSet    RecordSet
-	ChangeAction types.ChangeAction
+	RecordSet           RecordSet
+	ChangeAction        types.ChangeAction
+	IsPrivateHostedZone bool
 }
 
 // MockRoute53API is a struct that represents a Route 53 client.
