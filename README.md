@@ -26,7 +26,7 @@ if err != nil {
 }
 ```
 
-## List Certificats
+## List Certificates
 
 ```go
 ctx := context.TODO()
